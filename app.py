@@ -286,4 +286,22 @@ def add_branding_header(csv_string, title_text):
 
 # Let's see how we can embed this directly into your Streamlit export buttons
 
+st.markdown("---")
+st.subheader("Compliance SLA Performance & Resolution Tracking")
+
+sla_summary = df_filtered.groupby("Status").agg(
+    Total_Cases=("Case_ID", "count"),
+    Avg_Days_Pending=("Days_Pending", "mean")
+).reset_index()
+
+st.dataframe(sla_summary, use_container_width=True)
+
+st.download_button(
+    label="⏱️ Download SLA Compliance Report",
+    data=sla_summary.to_csv(index=False).encode("utf-8"),
+    file_name="sla_compliance_report.csv",
+    mime="text/css",
+)
+
+
 
