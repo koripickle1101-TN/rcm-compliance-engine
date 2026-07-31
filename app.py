@@ -11,12 +11,11 @@ st.set_page_config(
     layout="wide",
 )
 
-# Brand Color Palette: Tennessee Volunteers Theme with Dark Gray Structure
+# Brand Color Palette: Tennessee Volunteers Theme with Clean White Backgrounds
 VOLS_ORANGE = "#FF8200"
 WHITE = "#FFFFFF"
 BLACK = "#000000"
 DARK_GRAY = "#222222"
-LIGHT_GRAY = "#F9F9F9"
 
 st.markdown(
     f"""
@@ -36,7 +35,7 @@ st.markdown(
     }}
 
     .metric-card {{
-        background-color: {LIGHT_GRAY};
+        background-color: {WHITE};
         padding: 24px;
         border-radius: 4px;
         border-left: 4px solid {VOLS_ORANGE};
@@ -129,6 +128,15 @@ def init_db():
             row_count INTEGER
         )
     """)
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS case_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            case_id TEXT,
+            author TEXT,
+            note TEXT
+        )
+    """)
   conn.commit()
   conn.close()
 
@@ -192,8 +200,8 @@ if not audit_history_df.empty:
   df.loc[df["Case_ID"].isin(passed_cases), "Data_Quality_Flag"] = "Pass"
 
 # --- NAVIGATION TABS ---
-tab1, tab2 = st.tabs(
-    ["Dashboard & Inspector", "Review & Attestation Guide"]
+tab1, tab2, tab3 = st.tabs(
+    ["Dashboard & Inspector", "Case Notes Stream", "Review & Attestation Guide"]
 )
 
 with tab1:
@@ -264,31 +272,265 @@ with tab1:
 
   st.markdown("---")
 
-  # --- EXPORT CONTROLS WITH LOGGING ---
+  # --- INTERACTIVE CASE DETAIL INSPECTOR ---
+  st.markdown("### Interactive Case Detail Inspector")
+  selected_inspect_case = st.selectbox(
+      "Select Case ID to Review", df["Case_ID"], key="inspector_select"
+  )
+  inspect_row = df.loc[df["Case_ID"] == selected_inspect_case].iloc[0]
+
+  insp_col1, insp_col2, insp_col3 = st.columns(3)
+  with insp_col1:
+    st.markdown(
+        f"<div class='metric-card'><small"
+        f" style='color:{DARK_GRAY};'>CURRENT STATUS</small><h3"
+        f" style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{inspect_row['Status']}</h3></div>",
+        unsafe_allow_html=True,
+    )
+  with insp_col2:
+    st.markdown(
+        f"<div class='metric-card'><small"
+        f" style='color:{DARK_GRAY};'>RISK LEVEL</small><h3"
+        f" style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{inspect_row['Risk_Level']}</h3></div>",
+        unsafe_allow_html=True,
+    )
+  with insp_col3:
+    st.markdown(
+        f"<div class='metric-card'><small"
+        f" style='color:{DARK_GRAY};'>DAYS PENDING</small><h3"
+        f" style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{inspect_row['Days_Pending']}</h3></div>",
+        unsafe_allow_html=True,
+    )
+
+  st.markdown(
+      f"Data Quality Flag Status for {selected_inspect_case}:"
+      f" `{inspect_row['Data_Quality_Flag']}`"
+  )
+  st.info(
+      "Boundary Notice: This tool is built strictly for educational workflow"
+      " simulation and does not contain PHI."
+  )
+
+  st.markdown("---")
+
+  # --- QUEUE HEALTH & EXPORT CONTROLS ---
   st.markdown("### Queue Health & Export Controls")
   csv_data = df.to_csv(index=False).encode("utf-8")
 
-  if user_role in ["Compliance Manager", "System Admin"]:
-    if st.download_button(
-        "Download Filtered Dataset as CSV",
-        csv_data,
-        "rcm_filtered_queue.csv",
-        "text/csv",
-    ):
-      log_export_to_db(current_user, "Filtered Dataset CSV", len(df))
-      st.success("Export logged to SQLite successfully!")
+  passed_count = len(df[df["Data_Quality_Flag"] == "Pass"])
+  compliance_index = int((passed_count / len(df)) * 100)
+
+  col_qh1, col_qh2 = st.columns(2)
+  with col_qh1:
+    st.markdown(
+        f"<div class='metric-card'><small"
+        f" style='color:{DARK_GRAY};'>OVERALL QUEUE COMPLIANCE"
+        f" HEALTH</small><h2"
+        f" style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{compliance_index}%</h2><p"
+        f" style='color:{VOLS_ORANGE}; margin:5px 0 0 0;'>🟢 {passed_count} of"
+        f" {len(df)} passing</p></div>",
+        unsafe_allow_html=True,
+    )
+  with col_qh2:
+    if user_role in ["Compliance Manager", "System Admin"]:
+      if st.download_button(
+          "Download Filtered Dataset as CSV",
+          csv_data,
+          "rcm_filtered_queue.csv",
+          "text/csv",
+      ):
+        log_export_to_db(current_user, "Filtered Dataset CSV", len(df))
+        st.success("Export logged to SQLite successfully!")
+    else:
+      st.info(
+          "Export controls restricted to Compliance Managers and System"
+          " Admins."
+      )
+
+  st.markdown("---")
+
+  # --- RISK LEVEL BREAKDOWN & AUDIT SUMMARY ---
+  st.markdown("### Risk Level Breakdown & Audit Summary")
+  risk_summary_df = (
+      df["Risk_Level"]
+      .value_counts()
+      .reset_index(name="Count")
+      .rename(columns={"index": "Risk_Level"})
+  )
+  st.dataframe(risk_summary_df, use_container_width=True)
+  risk_csv = risk_summary_df.to_csv(index=False).encode("utf-8")
+  if st.download_button(
+      "Download Risk Audit Summary",
+      risk_csv,
+      "rcm_risk_audit_summary.csv",
+      "text/csv",
+  ):
+    log_export_to_db(current_user, "Risk Audit Summary CSV", len(risk_summary_df))
+
+  st.markdown("---")
+
+  # --- AGING BREAKDOWN SUMMARY ---
+  st.markdown("### Aging Breakdown Summary")
+  aging_df = (
+      df[["Case_ID", "Days_Pending", "Risk_Level"]]
+      .sort_values(by="Days_Pending", ascending=False)
+      .reset_index(drop=True)
+  )
+  st.dataframe(aging_df, use_container_width=True)
+  aging_csv = aging_df.to_csv(index=False).encode("utf-8")
+  if st.download_button(
+      "Download Aging Breakdown CSV",
+      aging_csv,
+      "rcm_aging_breakdown.csv",
+      "text/csv",
+  ):
+    log_export_to_db(current_user, "Aging Breakdown CSV", len(aging_df))
+
+  st.markdown("---")
+
+  # --- QUEUE ANALYTICS SUMMARY METRIC & SLA PERFORMANCE ---
+  st.markdown("### Queue Analytics Summary Metric")
+  tot_days = int(df["Days_Pending"].sum())
+  avg_days = round(float(df["Days_Pending"].mean()), 1)
+  qmetric_col1, qmetric_col2 = st.columns(2)
+  with qmetric_col1:
+    st.markdown(
+        f"<div class='metric-card'><small"
+        f" style='color:{DARK_GRAY};'>TOTAL CUMULATIVE DAYS"
+        f" PENDING</small><h2"
+        f" style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{tot_days} Days</h2></div>",
+        unsafe_allow_html=True,
+    )
+  with qmetric_col2:
+    st.markdown(
+        f"<div class='metric-card'><small"
+        f" style='color:{DARK_GRAY};'>AVERAGE DAYS PENDING PER"
+        f" CASE</small><h2"
+        f" style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{avg_days} Days</h2></div>",
+        unsafe_allow_html=True,
+    )
+
+  st.markdown("### Compliance SLA Performance & Resolution Tracking")
+  sla_df = (
+      df.groupby("Status")
+      .agg(Total_Cases=("Case_ID", "count"), Avg_Days_Pending=("Days_Pending", "mean"))
+      .reset_index()
+  )
+  st.dataframe(sla_df, use_container_width=True)
+  sla_csv = sla_df.to_csv(index=False).encode("utf-8")
+  if st.download_button(
+      "Download SLA Compliance Report",
+      sla_csv,
+      "rcm_sla_compliance_report.csv",
+      "text/csv",
+  ):
+    log_export_to_db(current_user, "SLA Compliance Report CSV", len(sla_df))
+
+  st.markdown("---")
+
+  # --- DATA QUALITY EXCEPTION AUDIT & RESOLUTION LOG ---
+  st.markdown("### Data Quality Exception Audit & Resolution Log")
+  dq_summary = (
+      df[df["Data_Quality_Flag"] != "Pass"]
+      .groupby("Data_Quality_Flag")
+      .agg(
+          Affected_Cases=("Case_ID", "count"),
+          Case_List=("Case_ID", lambda x: ", ".join(x)),
+      )
+      .reset_index()
+  )
+  st.dataframe(dq_summary, use_container_width=True)
+  dq_csv = dq_summary.to_csv(index=False).encode("utf-8")
+  if st.download_button(
+      "Download DQ Exception Audit Log",
+      dq_csv,
+      "rcm_dq_exception_audit.csv",
+      "text/csv",
+  ):
+    log_export_to_db(current_user, "DQ Exception Audit Log CSV", len(dq_summary))
+
+  st.markdown("---")
+
+  # --- INTERACTIVE COMPLIANCE CASE SEARCH & FILTER ---
+  st.markdown("### Interactive Compliance Case Search & Filter")
+  search_query = st.text_input(
+      "Search Active Cases by ID, Status, or Flag",
+      "",
+      placeholder="Type a keyword or case ID above to instantly filter...",
+  )
+  if search_query:
+    filtered_search_df = df[
+        df.apply(
+            lambda row: row.astype(str).str.contains(search_query, case=False).any(),
+            axis=1,
+        )
+    ]
+    st.dataframe(filtered_search_df, use_container_width=True)
   else:
     st.info(
-        "Export controls restricted to Compliance Managers and System Admins."
+        "Type a keyword or case ID above to instantly filter your active"
+        " compliance queue."
     )
 
   st.markdown("---")
 
+  # --- COMPLIANCE AUDIT EXPORT HUB & FULL SNAPSHOT ---
+  st.markdown("### Compliance Audit Export Hub & Full Snapshot")
+  full_snapshot_csv = df.to_csv(index=False).encode("utf-8")
+  if st.download_button(
+      "Download Complete Filtered Queue Snapshot (CSV)",
+      full_snapshot_csv,
+      "rcm_complete_queue_snapshot.csv",
+      "text/csv",
+  ):
+    log_export_to_db(current_user, "Complete Queue Snapshot CSV", len(df))
+
+  st.markdown("---")
+
+  # --- EXECUTIVE COMPLIANCE SUMMARY & PRINT HUB ---
+  st.markdown("### Executive Compliance Summary & Print Hub")
+  exec_summary_text = f"""
+==================================================
+RCM COMPLIANCE INTELLIGENCE ENGINE - EXECUTIVE REPORT
+==================================================
+Generated Timestamp: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+Reviewer Authority: {current_user} ({user_role})
+--------------------------------------------------
+Scope Analyzed: {len(df)} Active Work-Queue Cases
+Critical Risk Exposure: {len(df[df['Risk_Level'] == 'Critical'])} Cases Requiring Immediate Escalation
+Data Quality Exceptions: {len(df[df['Data_Quality_Flag'] != 'Pass'])} Active Compliance Flags
+Average Case Aging: {avg_days} Days Pending
+Calculated Compliance Index: {compliance_index}%
+==================================================
+"""
+  st.text_area(
+      "Copy Executive Summary Report", exec_summary_text.strip(), height=180
+  )
+  if st.download_button(
+      "Download Executive Summary (.txt)",
+      exec_summary_text.strip(),
+      "rcm_executive_summary.txt",
+      "text/plain",
+  ):
+    log_export_to_db(current_user, "Executive Summary TXT", 1)
+
+  st.markdown("---")
+
   # --- PERSISTENT SQLITE AUDIT & REMEDIATION LOGBOOK ---
-  st.markdown("### Persistent SQLite Audit & Remediation Logbook")
+  st.markdown(
+      "### Persistent SQLite Audit & Remediation Logbook & Live State Update"
+  )
 
   selected_case = st.selectbox(
-      "Select Case ID for Persistent SQLite Audit Sign-Off", df["Case_ID"]
+      "Select Case ID for Persistent SQLite Audit Sign-Off",
+      df["Case_ID"],
+      key="remediation_case_select",
   )
   target_exception = df.loc[df["Case_ID"] == selected_case][
       "Data_Quality_Flag"
@@ -297,13 +539,15 @@ with tab1:
 
   remediation_note = st.text_input(
       "Enter Official Audit Remediation Note",
-      "Verified missing documentation and closed loop.",
+      "e.g., Verified missing documentation and closed loop.",
   )
-  auditor_name = st.text_input("Compliance Auditor / Reviewer Name", current_user)
+  auditor_name = st.text_input(
+      "Compliance Auditor / Reviewer Name",
+      current_user,
+      key="remediation_auditor",
+  )
 
-  if st.button(
-      "Commit Remediation to Database & Update Queue State to 'Pass'"
-  ):
+  if st.button("Commit Remediation to Database & Update Queue State to 'Pass'"):
     if user_role == "Junior Auditor":
       st.error(
           "Access Denied: Junior Auditors do not have permission to execute"
@@ -347,7 +591,9 @@ with tab1:
   search_col1, search_col2 = st.columns(2)
   with search_col1:
     audit_search_term = st.text_input(
-        "Search Audit History (Case ID or Auditor)", ""
+        "Search Audit History (Case ID or Auditor)",
+        "",
+        key="audit_history_search",
     )
   with search_col2:
     export_log_view = st.checkbox("View Database Export History Log", False)
@@ -393,13 +639,21 @@ with tab1:
 
   # --- AUTOMATED COMPLIANCE ALERT & WEBHOOK DISPATCHER ---
   st.markdown("### Automated Compliance Alert & Webhook Dispatcher")
+  st.markdown(
+      "Instantly transmit executive summaries and critical exception flags via"
+      " webhook simulation or SMTP notification."
+  )
 
   if user_role in ["Compliance Manager", "System Admin"]:
     webhook_url = st.text_input(
         "Webhook Endpoint URL (Slack / Teams / Custom)",
-        "https://httpbin.org/post",
+        "https://webhook.site/your-unique-endpoint",
     )
-    officer_email = st.text_input("Compliance Officer Email", current_user)
+    officer_email = st.text_input(
+        "Compliance Officer Email",
+        "koripickle1101@gmail.com",
+        key="webhook_email",
+    )
 
     col_alert1, col_alert2 = st.columns(2)
     with col_alert1:
@@ -433,12 +687,9 @@ with tab1:
 
   st.markdown("---")
 
-  # --- AUTOMATED COMPLIANCE SCORING & EXECUTIVE REPORT CARD ---
-  st.markdown("### Automated Compliance Scoring & Executive Report Card")
+  # --- AUTOMATED COMPLIANCE SCORING & EXECUTIVE BADGE ---
+  st.markdown("### Automated Compliance Scoring & Executive Badge")
   score_col1, score_col2 = st.columns(2)
-
-  passed_count = len(df[df["Data_Quality_Flag"] == "Pass"])
-  compliance_index = int((passed_count / len(df)) * 100)
 
   with score_col1:
     st.metric(
@@ -460,32 +711,53 @@ with tab1:
           "Immediate remediation required to clear high-risk compliance flags."
       )
 
-  st.markdown("Copy-Friendly Executive Report Card Summary")
-  report_card_text = f"""
-==================================================
-EXECUTIVE RCM COMPLIANCE & GOVERNANCE REPORT CARD
-==================================================
-Generated Timestamp: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-Reviewer Authority: {current_user} ({user_role})
---------------------------------------------------
-PORTFOLIO METRICS SUMMARY:
-- Total Filtered Work-Queue Cases: {len(df)}
-- Critical Risk Items Flagged: {len(df[df["Risk_Level"] == "Critical"])}
-- Data Quality Exceptions Identified: {len(df[df["Data_Quality_Flag"] != "Pass"])}
-- Calculated Compliance Index: {compliance_index}%
---------------------------------------------------
-GOVERNANCE & AUDIT STATUS:
-- Active Database Connection: {DB_NAME} (SQLite Active)
-- RBAC Enforcement Tier: {user_role}
-==================================================
-"""
-  st.text_area(
-      "Copy Executive Summary for Board Reporting / Email Briefs",
-      report_card_text.strip(),
-      height=220,
+with tab2:
+  st.markdown("### Collaborative Case Notes & Annotations Stream")
+  st.markdown(
+      "Add and review persistent case-specific notes across your auditing team."
   )
 
-with tab2:
+  note_case = st.selectbox(
+      "Select Case ID for Annotation", df["Case_ID"], key="note_case_select"
+  )
+  new_note = st.text_area("Add Case Annotation / Note")
+
+  if st.button("Save Note to Database"):
+    if not new_note.strip():
+      st.warning("Note content cannot be empty.")
+    else:
+      conn = sqlite3.connect(DB_NAME)
+      cursor = conn.cursor()
+      cursor.execute(
+          """
+                INSERT INTO case_notes (timestamp, case_id, author, note)
+                VALUES (?, ?, ?, ?)
+            """,
+          (
+              datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+              note_case,
+              current_user,
+              new_note,
+          ),
+      )
+      conn.commit()
+      conn.close()
+      st.success("Case note saved successfully!")
+      st.rerun()
+
+  st.markdown("### Existing Case Notes Timeline")
+  conn = sqlite3.connect(DB_NAME)
+  notes_df = pd.read_sql_query(
+      "SELECT * FROM case_notes ORDER BY timestamp DESC", conn
+  )
+  conn.close()
+
+  if not notes_df.empty:
+    st.dataframe(notes_df, use_container_width=True)
+  else:
+    st.info("No case notes recorded yet.")
+
+with tab3:
   st.markdown("### Review & Attestation Guide")
   st.markdown(
       "This section provides operational definitions for data quality flags and"
@@ -523,3 +795,4 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
