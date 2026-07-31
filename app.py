@@ -802,3 +802,66 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+import streamlit as st
+
+st.markdown(
+    """
+    <style>
+    /* 1. Target Selectboxes, Dropdowns, and Inputs */
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div,
+    div[class*="stSelectbox"] > div {
+        background-color: #FF8200 !important;
+        color: #FFFFFF !important;
+        border-radius: 6px !important;
+        border: None !important;
+    }
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] input {
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+    }
+
+    /* 2. Target Expanders (Standard Operating Guide Box) */
+    div[data-testid="stExpander"] {
+        background-color: #FF8200 !important;
+        border: None !important;
+        border-radius: 6px !important;
+    }
+    div[data-testid="stExpander"] details {
+        background-color: #FF8200 !important;
+        color: #FFFFFF !important;
+        border-radius: 6px !important;
+    }
+    div[data-testid="stExpander"] summary {
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+    }
+
+    /* 3. Target File Upload Drop Zone */
+    section[data-testid="stFileUploaderDropzone"] {
+        background-color: #FF8200 !important;
+        border: 2px dashed #FFFFFF !important;
+        color: #FFFFFF !important;
+        border-radius: 8px !important;
+    }
+    section[data-testid="stFileUploaderDropzone"] span,
+    section[data-testid="stFileUploaderDropzone"] button {
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+    }
+
+    /* 4. Target Dataframe / Table Headers */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #FF8200 !important;
+    }
+    [data-testid="stDataFrame"] th {
+        background-color: #FF8200 !important;
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
