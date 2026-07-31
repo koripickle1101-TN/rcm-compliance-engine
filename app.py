@@ -267,3 +267,16 @@ if st.button("Run Export Data Integrity Check"):
         st.success(f"Verification Successful: {len(df_filtered)} active records ready for compliant export.")
     else:
         st.error("Verification Failed: No records detected in current filter scope.")
+
+st.markdown("---")
+st.subheader("Queue Analytics Summary Metric")
+
+total_aging_days = int(df_filtered["Days_Pending"].sum()) if "Days_Pending" in df_filtered.columns else 0
+avg_aging_days = float(df_filtered["Days_Pending"].mean()) if "Days_Pending" in df_filtered.columns and len(df_filtered) > 0 else 0.0
+
+col1, col2 = st.columns(2)
+with col1:
+    st.metric("Total Cumulative Days Pending", f"{total_aging_days} Days")
+with col2:
+    st.metric("Average Days Pending per Case", f"{avg_aging_days:.1f} Days")
+
