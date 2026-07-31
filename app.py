@@ -628,3 +628,41 @@ with pdf_col:
 
 st.caption("CREATED BY KORI PICKLE | BSHA Healthcare Operations & Compliance Engine")
 
+import streamlit as st
+
+st.markdown("""
+    <style>
+    /* Clean, readable inputs with sharp high contrast */
+    div[data-baseweb="input"] > div, 
+    div[data-baseweb="textarea"] > div {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 2px solid #FF8200 !important;
+    }
+    
+    /* Ensure text inside text areas/inputs is dark and readable */
+    input, textarea {
+        color: #000000 !important;
+        font-weight: 500 !important;
+    }
+
+    /* Style expanders/accordions cleanly without solid orange fill */
+    .streamlit-expanderHeader {
+        background-color: #1E1E1E !important;
+        color: #FFFFFF !important;
+        border-radius: 5px;
+    }
+    .streamlit-expanderContent {
+        background-color: #F8F9FA !important;
+        color: #1E1E1E !important;
+        border: 1px solid #E0E0E0;
+    }
+    
+    /* Responsive metric formatting */
+    [data-testid="stMetricValue"] {
+        font-size: 1.6rem !important;
+        font-weight: 700 !important;
+        color: #000000 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
