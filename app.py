@@ -834,4 +834,63 @@ with tab3:
         icon="📜"
     )
 
+tab1, tab2, tab3 = st.tabs(
+    ["Dashboard & Inspector", "Case Notes Stream", "Review & Attestation Guide"]
+)
+
+with tab1:
+    pass
+
+with tab2:
+    pass
+
+with tab3:
+    st.subheader("📋 Review & Attestation Guide")
+    st.write(
+        "Standard Operating Procedures (SOP) and operational definitions for data quality exception flags and compliance attestations."
+    )
+    st.divider()
+
+    col_g1, col_g2 = st.columns(2)
+
+    with col_g1:
+        st.markdown(
+            f"""
+            <div class="metric-card" style="margin-bottom: 15px;">
+                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Resolution Date</h4>
+                <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Case resolution status is marked closed or approved without a validated timestamp.</p>
+                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Cross-reference clearinghouse logs and record the exact final adjudication date.</p>
+            </div>
+            <div class="metric-card" style="margin-bottom: 15px;">
+                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Closure Evidence</h4>
+                <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Supporting documentation, payor EOB, or written authorization is absent from the file.</p>
+                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Attach proof of payment or final appeal decision before committing state change to 'Pass'.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with col_g2:
+        st.markdown(
+            f"""
+            <div class="metric-card" style="margin-bottom: 15px;">
+                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Owner</h4>
+                <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> No primary analyst or compliance specialist is assigned accountability for the work item.</p>
+                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Assign an active staff member in the work-queue manager.</p>
+            </div>
+            <div class="metric-card" style="margin-bottom: 15px;">
+                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Human Review Evidence</h4>
+                <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Automated claim/authorization decision lacks required secondary sign-off.</p>
+                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Require Senior Auditor or Compliance Manager verification.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
+    st.subheader("🛡️ Enterprise Governance & Regulatory Attestation")
+    vols_alert(
+        "Attestation Clause: All remediation logs committed to the persistent database constitute an immutable audit trail subject to internal quality management system (QMS) standards.",
+        icon="📜",
+    )
 
