@@ -337,3 +337,17 @@ if search_query:
     st.dataframe(filtered_search_df, use_container_width=True)
 else:
     st.info("Type a keyword or case ID above to instantly filter your active compliance queue.")
+
+st.markdown("---")
+st.subheader("Compliance Audit Export Hub & Full Snapshot")
+
+# Export all active filtered records with complete metadata
+all_data_csv = df_filtered.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+    label="📦 Download Complete Filtered Queue Snapshot (CSV)",
+    data=all_data_csv,
+    file_name="rcm_complete_queue_snapshot.csv",
+    mime="text/csv",
+)
+
