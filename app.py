@@ -351,3 +351,33 @@ st.download_button(
     mime="text/csv",
 )
 
+st.markdown("---")
+st.subheader("Executive Compliance Summary & Print Hub")
+
+# Generate executive text summary block
+total_cases_count = len(df_filtered)
+critical_count = len(df_filtered[df_filtered["Risk_Level"] == "Critical"])
+dq_issues_count = len(df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"])
+avg_days = df_filtered["Days_Pending"].mean() if total_cases_count > 0 else 0
+
+executive_summary_text = f"""
+==================================================
+RCM COMPLIANCE INTELLIGENCE ENGINE - EXECUTIVE REPORT
+==================================================
+Scope Analyzed: {total_cases_count} Active Work-Queue Cases
+Critical Risk Exposure: {critical_count} Cases Requiring Immediate Escalation
+Data Quality Exceptions: {dq_issues_count} Active Compliance Flags
+Average Case Aging: {avg_days:.1f} Days Pending
+Status: Operational Review Complete
+==================================================
+"""
+
+st.text_area("📋 Copy Executive Summary Report", value=executive_summary_text, height=200)
+
+st.download_button(
+    label="📥 Download Executive Summary (.txt)",
+    data=executive_summary_text.encode("utf-8"),
+    file_name="rcm_executive_compliance_report.txt",
+    mime="text/plain",
+)
+
