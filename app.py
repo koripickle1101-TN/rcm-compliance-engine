@@ -27,6 +27,27 @@ st.set_page_config(
 
 st.markdown("""
     <style>
+    st.markdown("""
+    <style>
+    /* Fix multiselect tags (remove default red/pink pill background) */
+    span[data-baseweb="tag"] {
+        background-color: #1E1E1E !important;
+        border: 1px solid #FF8200 !important;
+        color: #FFFFFF !important;
+    }
+
+    span[data-baseweb="tag"] span,
+    span[data-baseweb="tag"] svg {
+        color: #FFFFFF !important;
+        fill: #FFFFFF !important;
+    }
+
+    /* 1. Reset background and text colors */
+    .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+    }
+
     /* 1. Reset background and text colors */
     .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
         background-color: #FFFFFF !important;
