@@ -56,16 +56,29 @@ selected_risk = st.sidebar.selectbox(
 )
 
 if selected_risk != "All":
-    df = df[df["Risk_Level"] == selected_risk]
+    df_filtered = df[df["Risk_Level"] == selected_risk]
+else:
+    df_filtered = df
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Filtered Cases", len(df))
-col2.metric("Critical Risk Items", len(df[df["Risk_Level"] == "Critical"]))
-col3.metric("Open High/Critical", len(df[df["Risk_Level"].isin(["High", "Critical"]) & (df["Status"] != "Closed")]))
-col4.metric("Data Quality Exceptions", len(df[df["Data_Quality_Flag"] != "Pass"]))
+col1.metric("Total Filtered Cases", len(df_filtered))
+col2.metric("Critical Risk Items", len(df_filtered[df_filtered["Risk_Level"] == "Critical"]))
+col3.metric("Open High/Critical", len(df_filtered[df_filtered["Risk_Level"].isin(["High", "Critical"]) & (df_filtered["Status"] != "Closed")]))
+col4.metric("Data Quality Exceptions", len(df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]))
 
 st.subheader("Active Work Queue & Data Quality Exceptions")
-st.dataframe(df, use_container_width=True)
+st.dataframe(df_filtered, use_container_width=True)
+
+st.subheader("Interactive Case Detail Inspector")
+selected_case = st.selectbox("Select Case ID to Review", df["Case_ID"].tolist())
+case_details = df[df["Case_ID"] == selected_case].iloc[0]
+
+col_a, col_b, col_c = st.columns(3)
+col_a.metric("Current Status", case_details["Status"])
+col_b.metric("Risk Level", case_details["Risk_Level"])
+col_c.metric("Days Pending", case_details["Days_Pending"])
+
+st.markdown(f"**Data Quality Flag Status for {selected_case}:** `{case_details['Data_Quality_Flag']}`")
 
 st.info(
     "Boundary Notice: This tool is built strictly for educational workflow simulation and does not contain PHI or make clinical/payer determinations."
