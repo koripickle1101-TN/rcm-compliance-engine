@@ -108,6 +108,12 @@ st.markdown("""
         color: #111111 !important;
     }
 
+    /* Force all expander headers and containers to pure white background and dark text */
+    details, summary, [data-testid="stExpander"] div, [data-testid="stExpanderDetails"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+    }
+
     .metric-card {
         background-color: #FFFFFF;
         border-left: 6px solid #FF8200;
@@ -648,3 +654,4 @@ with pdf_col:
         st.error("ReportLab library is not installed. Please add reportlab to requirements.txt.")
 
 st.caption("CREATED BY KORI PICKLE | BSHA Healthcare Operations & Compliance Engine")
+
