@@ -14,10 +14,11 @@ VOLS_ORANGE = "#FF8200"
 WHITE = "#FFFFFF"
 BLACK = "#000000"
 
+# Unified Custom Styling Configuration
 st.markdown(
     f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Great+Vibes&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     .stApp {{
         background-color: {WHITE};
@@ -35,6 +36,7 @@ st.markdown(
     [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] span {{
         color: {VOLS_ORANGE} !important;
         font-family: 'Inter', sans-serif !important;
+        font-weight: 700 !important;
     }}
 
     h1, h2, h3, h4, h5, h6, .editorial-header {{
@@ -44,25 +46,43 @@ st.markdown(
         letter-spacing: -0.01em;
     }}
 
-    /* Streamlit Native Metric Cards & Labels */
+    /* Streamlit Native Metric Cards & Responsive Mobile View */
     [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p {{
         color: {VOLS_ORANGE} !important;
         font-weight: 700 !important;
-        font-size: 0.9rem !important;
+        font-size: 0.85rem !important;
+        text-transform: uppercase;
     }}
     
     [data-testid="stMetricValue"], [data-testid="stMetricValue"] div {{
         color: {BLACK} !important;
         font-weight: 800 !important;
+        font-size: 1.35rem !important;
+        white-space: nowrap !important;
     }}
 
-    /* Tiny Font, Captions, Small Elements */
-    small, .stCaption, span.small, p.small, label {{
+    /* Form Fields & High-Contrast Labels */
+    label, .stSelectbox label, .stTextInput label, .stTextArea label, .stCheckbox label {{
         color: {VOLS_ORANGE} !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
+        font-size: 0.9rem !important;
+        font-family: 'Inter', sans-serif !important;
     }}
 
-    /* Streamlit Tabs Styling */
+    input, textarea, select, [data-baseweb="select"] div, [data-baseweb="input"] div {{
+        background-color: {WHITE} !important;
+        color: {BLACK} !important;
+        border: 1px solid {VOLS_ORANGE} !important;
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 500 !important;
+    }}
+
+    .stTextInput input:focus, .stTextArea textarea:focus {{
+        border-color: {VOLS_ORANGE} !important;
+        box-shadow: 0 0 0 1px {VOLS_ORANGE} !important;
+    }}
+
+    /* Tabs Styling */
     button[data-baseweb="tab"] p {{
         color: {BLACK} !important;
         font-size: 1rem !important;
@@ -88,40 +108,29 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
     }}
 
-    input, textarea, select, [data-baseweb="select"] div, [data-baseweb="input"] div {{
-        background-color: {WHITE} !important;
-        color: {BLACK} !important;
-        border: 1px solid {VOLS_ORANGE} !important;
-        font-family: 'Inter', sans-serif !important;
-        font-weight: 500 !important;
-    }}
-
-    .stTextInput label, .stSelectbox label, .stTextArea label, .stCheckbox label {{
-        color: {VOLS_ORANGE} !important;
-        font-weight: 700 !important;
-        font-family: 'Inter', sans-serif !important;
-    }}
-
-    .stTextInput input:focus, .stTextArea textarea:focus {{
-        border-color: {VOLS_ORANGE} !important;
-        box-shadow: 0 0 0 1px {VOLS_ORANGE} !important;
-    }}
-
-    /* Metric Cards */
+    /* Custom Metric Cards */
     .metric-card {{
         background-color: {WHITE};
-        padding: 20px;
-        border-radius: 4px;
-        border: 1px solid {VOLS_ORANGE};
+        padding: 16px;
+        border-radius: 6px;
+        border: 1.5px solid {VOLS_ORANGE};
         border-left: 6px solid {VOLS_ORANGE};
-        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        margin-bottom: 10px;
     }}
 
     .metric-card small {{
         color: {VOLS_ORANGE} !important;
         font-weight: 700 !important;
+        font-size: 0.8rem !important;
+        letter-spacing: 0.03em;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+    }}
+
+    .metric-card h2, .metric-card h3 {{
+        color: {BLACK} !important;
+        font-weight: 800 !important;
+        margin: 4px 0 0 0 !important;
     }}
 
     .sidebar-session-box {{
@@ -135,12 +144,14 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
     }}
 
+    /* Buttons */
     .stButton button, .stDownloadButton button {{
         background-color: {WHITE} !important;
-        border: 1px solid {VOLS_ORANGE} !important;
+        border: 1.5px solid {VOLS_ORANGE} !important;
         color: {BLACK} !important;
         font-family: 'Inter', sans-serif !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
+        border-radius: 4px !important;
     }}
     
     .stButton button:hover, .stDownloadButton button:hover {{
@@ -149,13 +160,15 @@ st.markdown(
         border-color: {VOLS_ORANGE} !important;
     }}
 
-    .editorial-footer {{
-        margin-top: 80px;
-        padding: 40px 0;
-        border-top: 2px solid {VOLS_ORANGE};
-        text-align: center;
-        background-color: {WHITE};
-        font-family: 'Inter', sans-serif !important;
+    /* Dataframes & Chart Container Overrides */
+    [data-testid="stDataFrame"] {{
+        border: 1px solid {VOLS_ORANGE} !important;
+        border-radius: 6px;
+    }}
+
+    /* Suppress chart touch tooltip artifacts on touch devices */
+    .svg-container .hoverlayer {{
+        pointer-events: none !important;
     }}
     </style>
 """,
