@@ -1,179 +1,175 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import sqlite3
-import datetime
-import requests
 import io
+import datetime
+import sqlite3
+import requests
+import pandas as pd
 import plotly.express as px
+import streamlit as st
 
+# ReportLab Imports for Executive PDF Generation
 try:
     from reportlab.lib.pagesizes import letter
-    from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
+# ------------------------------------------------------------------------------
+# 1. PAGE CONFIGURATION & MASTER BRAND CSS
+# ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="RCM Compliance Intelligence Engine",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_icon="🛡️",
+    layout="wide"
 )
 
 st.markdown("""
     <style>
-        :root {
-            --vols-orange: #FF8200;
-            --vols-black: #000000;
-            --vols-white: #FFFFFF;
-        }
-        
-        .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
-            background-color: #FFFFFF !important;
-            color: #000000 !important;
-        }
-        
-        h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown, small {
-            color: #000000 !important;
-        }
+    /* 1. Reset background and text colors */
+    .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+    }
+    
+    h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown {
+        color: #000000 !important;
+    }
 
-        div[data-baseweb="input"] > div, 
-        div[data-baseweb="select"] > div,
-        div[class*="stSelectbox"] > div,
-        .stTextInput input, 
-        .stTextArea textarea {
-            border: 2px solid #FF8200 !important;
-            background-color: #FF8200 !important;
-            color: #FFFFFF !important;
-            border-radius: 6px !important;
-            font-weight: bold !important;
-        }
+    /* 2. Fix Input Fields & Text Areas: White background, Orange border, Dark readable text */
+    div[data-baseweb="input"] > div,
+    div[data-baseweb="base-input"],
+    div[data-baseweb="textarea"] > div,
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        border: 2px solid #FF8200 !important;
+        border-radius: 6px !important;
+    }
 
-        div[data-baseweb="select"] span,
-        div[data-baseweb="select"] input,
-        div[data-baseweb="select"] div {
-            color: #FFFFFF !important;
-            font-weight: bold !important;
-        }
+    div[data-baseweb="input"] input,
+    div[data-baseweb="textarea"] textarea,
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] input {
+        color: #111111 !important;
+        -webkit-text-fill-color: #111111 !important;
+        font-weight: 600 !important;
+    }
 
-        input::placeholder, textarea::placeholder {
-            color: #FFFFFF !important;
-            opacity: 0.8 !important;
-        }
+    input::placeholder, textarea::placeholder {
+        color: #666666 !important;
+        -webkit-text-fill-color: #666666 !important;
+    }
 
-        div[data-baseweb="popover"], 
-        div[data-baseweb="menu"], 
-        ul[role="listbox"],
-        li[role="option"] {
-            background-color: #FFFFFF !important;
-            color: #000000 !important;
-            border: 1px solid #FF8200 !important;
-        }
-        li[role="option"]:hover, li[aria-selected="true"] {
-            background-color: #FF8200 !important;
-            color: #FFFFFF !important;
-            font-weight: bold !important;
-        }
+    /* 3. Dropdowns & Selectboxes */
+    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #FF8200 !important;
+    }
+    li[role="option"] {
+        color: #000000 !important;
+    }
+    li[role="option"]:hover, li[aria-selected="true"] {
+        background-color: #FF8200 !important;
+        color: #FFFFFF !important;
+    }
 
-        span[data-baseweb="tag"] {
-            background-color: #FF8200 !important;
-            border: 1px solid #000000 !important;
-        }
-        span[data-baseweb="tag"] span {
-            color: #FFFFFF !important;
-            font-weight: bold !important;
-        }
+    /* 4. Fix Accordion/Expander body (Clean contrast, no solid orange fill) */
+    div[data-testid="stExpander"] {
+        border: 1px solid #E0E0E0 !important;
+        border-radius: 6px !important;
+        overflow: hidden;
+        background-color: #FFFFFF !important;
+    }
+    div[data-testid="stExpander"] details summary {
+        background-color: #1E1E1E !important;
+        color: #FFFFFF !important;
+    }
+    div[data-testid="stExpanderDetails"] {
+        background-color: #F8F9FA !important;
+        color: #111111 !important;
+    }
+    div[data-testid="stExpanderDetails"] p, 
+    div[data-testid="stExpanderDetails"] li {
+        color: #111111 !important;
+    }
 
-        div.stButton > button, 
-        div.stDownloadButton > button {
-            background-color: #FF8200 !important;
-            color: #FFFFFF !important;
-            font-weight: bold !important;
-            border-radius: 6px !important;
-            border: 1.5px solid #000000 !important;
-            padding: 10px 18px !important;
-            width: 100% !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        }
-        div.stButton > button:hover, 
-        div.stDownloadButton > button:hover {
-            background-color: #E67300 !important;
-            color: #FFFFFF !important;
-        }
+    /* 5. Custom Metric Cards */
+    .metric-card {
+        background-color: #FFFFFF;
+        border-left: 6px solid #FF8200;
+        border-top: 1px solid #D0D0D0;
+        border-right: 1px solid #D0D0D0;
+        border-bottom: 1px solid #D0D0D0;
+        padding: 16px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .metric-title {
+        color: #FF8200;
+        font-size: 0.85rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #000000;
+        margin-top: 4px;
+        white-space: nowrap !important;
+    }
 
-        [data-testid="stDataFrame"], .stDataFrame, div[data-testid="stTable"] {
-            border: 1px solid #FF8200 !important;
-            border-radius: 6px !important;
-            background-color: #FFFFFF !important;
-            color: #000000 !important;
-        }
-        [data-testid="stDataFrame"] th {
-            background-color: #FF8200 !important;
-            color: #FFFFFF !important;
-            font-weight: bold !important;
-        }
-        [data-testid="stDataFrame"] td {
-            color: #111111 !important;
-        }
+    /* 6. Primary Action Buttons */
+    div.stButton > button, div.stDownloadButton > button {
+        background-color: #FF8200 !important;
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+        border-radius: 6px !important;
+        border: none !important;
+        padding: 10px 18px !important;
+        width: 100% !important;
+    }
+    div.stButton > button:hover, div.stDownloadButton > button:hover {
+        background-color: #E67300 !important;
+        color: #FFFFFF !important;
+    }
 
-        div[data-testid="stExpander"] {
-            background-color: #FF8200 !important;
-            border: none !important;
-            border-radius: 6px !important;
-        }
-        div[data-testid="stExpander"] details {
-            background-color: #FF8200 !important;
-            color: #FFFFFF !important;
-            border-radius: 6px !important;
-        }
-        div[data-testid="stExpander"] summary,
-        div[data-testid="stExpander"] summary * {
-            color: #FFFFFF !important;
-            font-weight: bold !important;
-        }
+    /* 7. DataFrames & Tables */
+    [data-testid="stDataFrame"], .stDataFrame, div[data-testid="stTable"] {
+        border: 1px solid #FF8200 !important;
+        border-radius: 6px !important;
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+    }
+    [data-testid="stDataFrame"] th {
+        background-color: #FF8200 !important;
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+    }
+    [data-testid="stDataFrame"] td {
+        color: #111111 !important;
+    }
 
-        section[data-testid="stFileUploaderDropzone"],
-        div[data-testid="stFileUploaderDropzone"] {
-            background-color: #FF8200 !important;
-            border: 2px dashed #FFFFFF !important;
-            border-radius: 8px !important;
-        }
-        section[data-testid="stFileUploaderDropzone"] *,
-        div[data-testid="stFileUploaderDropzone"] * {
-            color: #FFFFFF !important;
-            font-weight: bold !important;
-        }
-
-        .metric-card {
-            background-color: #FFFFFF;
-            border-left: 6px solid #FF8200;
-            border-top: 1px solid #D0D0D0;
-            border-right: 1px solid #D0D0D0;
-            border-bottom: 1px solid #D0D0D0;
-            padding: 16px;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .metric-title {
-            color: #FF8200;
-            font-size: 0.85rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .metric-value {
-            font-size: 1.7rem;
-            font-weight: bold;
-            color: #000000;
-            margin-top: 4px;
-        }
+    /* 8. File Uploader */
+    section[data-testid="stFileUploaderDropzone"],
+    div[data-testid="stFileUploaderDropzone"] {
+        background-color: #FF8200 !important;
+        border: 2px dashed #FFFFFF !important;
+        border-radius: 8px !important;
+    }
+    section[data-testid="stFileUploaderDropzone"] *,
+    div[data-testid="stFileUploaderDropzone"] * {
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
+# ------------------------------------------------------------------------------
+# 2. DATABASE INITIALIZATION & STATE MANAGEMENT
+# ------------------------------------------------------------------------------
 def init_db():
     conn = sqlite3.connect("rcm_audit_log.db")
     c = conn.cursor()
@@ -210,6 +206,9 @@ if "df_cases" not in st.session_state:
         {"Case_ID": "PAUTH-050", "Status": "Appeal Readiness", "Risk_Level": "Critical", "Days_Pending": 10, "Data_Quality_Flag": "Pass", "Claim_Value": 20000.00}
     ])
 
+# ------------------------------------------------------------------------------
+# 3. PDF REPORT GENERATOR
+# ------------------------------------------------------------------------------
 def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -289,6 +288,9 @@ def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name)
     buffer.seek(0)
     return buffer
 
+# ------------------------------------------------------------------------------
+# 4. SIDEBAR NAVIGATION & DATA CONTROLS
+# ------------------------------------------------------------------------------
 with st.sidebar:
     st.header("Governance & Data Controls")
     role = st.selectbox("Select Access Role", ["System Admin", "Compliance Manager", "Junior Auditor"])
@@ -318,6 +320,9 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"Active Authority: {role}")
 
+# ------------------------------------------------------------------------------
+# 5. MAIN APPLICATION HEADER & GUIDES
+# ------------------------------------------------------------------------------
 st.title("RCM Compliance & Work-Queue Intelligence Engine")
 st.caption("Enterprise Portfolio Artifact: RBAC, SQLite Persistence, Webhook Alerting, and Historical Audit Search.")
 
@@ -341,6 +346,9 @@ with st.expander("Review & Attestation Standard Operating Guide", expanded=True)
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 6. EXECUTIVE METRICS & DASHBOARD
+# ------------------------------------------------------------------------------
 df = st.session_state.df_cases
 
 total_portfolio_val = df["Claim_Value"].sum()
@@ -375,6 +383,9 @@ with s3:
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 7. WORK QUEUE & VISUALIZATIONS
+# ------------------------------------------------------------------------------
 st.subheader("Active Work Queue & Data Quality Exceptions")
 
 f_col1, f_col2 = st.columns(2)
@@ -405,6 +416,9 @@ with ch2:
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 8. INSPECTOR & ANNOTATION LOG
+# ------------------------------------------------------------------------------
 st.subheader("Interactive Case Detail Inspector & Annotation Log")
 selected_case_id = st.selectbox("Select Case ID to Review", options=df["Case_ID"].tolist())
 case_row = df[df["Case_ID"] == selected_case_id].iloc[0]
@@ -446,6 +460,9 @@ with n_col2:
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 9. ADD CASE FORM
+# ------------------------------------------------------------------------------
 with st.expander("Add New Case / Claim Entry to Queue"):
     with st.form("add_case_form"):
         fc1, fc2, fc3 = st.columns(3)
@@ -468,6 +485,9 @@ with st.expander("Add New Case / Claim Entry to Queue"):
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 10. BULK REMEDIATION HUB
+# ------------------------------------------------------------------------------
 st.subheader("Bulk Remediation Hub")
 open_cases = df[df["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist()
 
@@ -497,6 +517,9 @@ else:
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 11. SINGLE SIGN-OFF & STATE UPDATE
+# ------------------------------------------------------------------------------
 st.subheader("Persistent SQLite Audit & Remediation Logbook & Live State Update")
 rem_case_id = st.selectbox("Select Case ID for Persistent SQLite Audit Sign-Off", options=df["Case_ID"].tolist(), key="single_signoff_select")
 target_row = df[df["Case_ID"] == rem_case_id].iloc[0]
@@ -522,6 +545,9 @@ if st.button("Commit Remediation to Database & Update Queue State to Pass"):
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 12. HISTORICAL AUDIT SEARCH PANEL
+# ------------------------------------------------------------------------------
 st.subheader("Historical Audit Search & Traceability Panel")
 conn = sqlite3.connect("rcm_audit_log.db")
 audit_trail_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC", conn)
@@ -551,6 +577,9 @@ else:
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 13. WEBHOOKS & AUTOMATED DISPATCH
+# ------------------------------------------------------------------------------
 st.subheader("Automated Compliance Alert & Webhook Dispatcher")
 webhook_url = st.text_input("Webhook Endpoint URL (Slack / Teams / Custom)", value="https://httpbin.org/post")
 email_recipient = st.text_input("Compliance Officer Email", value="koripickle1101@gmail.com")
@@ -579,6 +608,9 @@ with w_col2:
 
 st.markdown("---")
 
+# ------------------------------------------------------------------------------
+# 14. COMPLIANCE SCORING & EXPORTS
+# ------------------------------------------------------------------------------
 st.subheader("Automated Compliance Scoring & Executive PDF Export")
 
 summary_text = f"""==================================================
@@ -627,42 +659,3 @@ with pdf_col:
         st.error("ReportLab library is not installed. Please add reportlab to requirements.txt.")
 
 st.caption("CREATED BY KORI PICKLE | BSHA Healthcare Operations & Compliance Engine")
-
-import streamlit as st
-
-st.markdown("""
-    <style>
-    /* Clean, readable inputs with sharp high contrast */
-    div[data-baseweb="input"] > div, 
-    div[data-baseweb="textarea"] > div {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border: 2px solid #FF8200 !important;
-    }
-    
-    /* Ensure text inside text areas/inputs is dark and readable */
-    input, textarea {
-        color: #000000 !important;
-        font-weight: 500 !important;
-    }
-
-    /* Style expanders/accordions cleanly without solid orange fill */
-    .streamlit-expanderHeader {
-        background-color: #1E1E1E !important;
-        color: #FFFFFF !important;
-        border-radius: 5px;
-    }
-    .streamlit-expanderContent {
-        background-color: #F8F9FA !important;
-        color: #1E1E1E !important;
-        border: 1px solid #E0E0E0;
-    }
-    
-    /* Responsive metric formatting */
-    [data-testid="stMetricValue"] {
-        font-size: 1.6rem !important;
-        font-weight: 700 !important;
-        color: #000000 !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
