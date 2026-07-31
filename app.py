@@ -280,3 +280,10 @@ with col1:
 with col2:
     st.metric("Average Days Pending per Case", f"{avg_aging_days:.1f} Days")
 
+def add_branding_header(csv_string, title_text):
+    brand_header = f"# ORGANIZATION: RCM Compliance & Work-Queue Intelligence Engine\n# BRAND PALETTE: Tennessee Volunteers Theme (#FF8200, White, Black)\n# REPORT: {title_text}\n"
+    return brand_header + csv_string
+
+# Let's see how we can embed this directly into your Streamlit export buttons
+
+
