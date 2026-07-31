@@ -203,3 +203,28 @@ st.info(
     " determinations."
 )
 
+st.markdown("---")
+st.subheader("Queue Health & Export Controls")
+
+if "Data_Quality_Flag" in df_filtered.columns:
+    passed_count = len(df_filtered[df_filtered["Data_Quality_Flag"] == "Pass"])
+    total_count = len(df_filtered)
+    health_score = int((passed_count / total_count) * 100) if total_count > 0 else 100
+    st.metric(
+        "Overall Queue Compliance Health",
+        f"{health_score}%",
+        delta=f"{passed_count} of {total_count} passing"
+    )
+
+@st.cache_data
+def convert_df_to_csv(dataframe):
+    return dataframe.to_csv(index=False).encode("utf-8")
+
+csv_data = convert_df_to_csv(df_filtered)
+
+st.download_button(
+    label="📥 Download Filtered Dataset as CSV",
+    data=csv_data,
+    file_name="rcm_filtered_export.csv",
+    mime="text/csv",
+)
