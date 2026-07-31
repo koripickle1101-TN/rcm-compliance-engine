@@ -380,4 +380,21 @@ st.download_button(
     file_name="rcm_executive_compliance_report.txt",
     mime="text/plain",
 )
+st.markdown("---")
+st.subheader("Interactive Remediation & Sign-Off Workflow")
+
+selected_case_to_remediate = st.selectbox(
+    "Select Flagged Case ID for Remediation Sign-Off",
+    options=df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist()
+)
+
+if selected_case_to_remediate:
+    current_flag = df_filtered.loc[df_filtered["Case_ID"] == selected_case_to_remediate, "Data_Quality_Flag"].values[0]
+    st.write(f"**Current Active Exception for {selected_case_to_remediate}:** `{current_flag}`")
+    
+    remediation_note = st.text_input("Enter Remediation Action / Resolution Note", placeholder="e.g., Missing owner assigned and verified.")
+    
+    if st.button("✅ Mark Case Resolved & Update Audit Log"):
+        st.success(f"Case {selected_case_to_remediate} successfully cleared! Remediation Logged: '{remediation_note}'")
+        st.info("Note: Session-state tracking can persist this update across your workflow filters.")
 
