@@ -77,6 +77,7 @@ st.markdown("""
     }
     li[role="option"] {
         color: #000000 !important;
+        background-color: #FFFFFF !important;
     }
     li[role="option"]:hover, li[aria-selected="true"] {
         background-color: #FF8200 !important;
@@ -84,17 +85,22 @@ st.markdown("""
     }
 
     div[data-testid="stExpander"] {
-        border: 1px solid #E0E0E0 !important;
+        border: 1px solid #FF8200 !important;
         border-radius: 6px !important;
         overflow: hidden;
         background-color: #FFFFFF !important;
     }
     div[data-testid="stExpander"] details summary {
-        background-color: #1E1E1E !important;
-        color: #FFFFFF !important;
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border-bottom: 1px solid #FF8200 !important;
+    }
+    div[data-testid="stExpander"] details summary p {
+        color: #000000 !important;
+        font-weight: bold !important;
     }
     div[data-testid="stExpanderDetails"] {
-        background-color: #F8F9FA !important;
+        background-color: #FFFFFF !important;
         color: #111111 !important;
     }
     div[data-testid="stExpanderDetails"] p, 
@@ -155,6 +161,7 @@ st.markdown("""
     }
     [data-testid="stDataFrame"] td {
         color: #111111 !important;
+        background-color: #FFFFFF !important;
     }
 
     section[data-testid="stFileUploaderDropzone"],
@@ -252,8 +259,8 @@ def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name)
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
         ('BOTTOMPADDING', (0,0), (-1,0), 8),
-        ('BACKGROUND', (0,1), (-1,-1), colors.HexColor("#F8F9FA")),
-        ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#CCCCCC")),
+        ('BACKGROUND', (0,1), (-1,-1), colors.HexColor("#FFFFFF")),
+        ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#FF8200")),
         ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
         ('FONTSIZE', (0,0), (-1,-1), 10),
     ]))
@@ -274,10 +281,10 @@ def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name)
     
     t_cases = Table(case_headers, colWidths=[80, 100, 80, 90, 150])
     t_cases.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#000000")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#FF8200")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#DDDDDD")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#FF8200")),
         ('FONTSIZE', (0,0), (-1,-1), 8),
     ]))
     story.append(t_cases)
@@ -641,4 +648,3 @@ with pdf_col:
         st.error("ReportLab library is not installed. Please add reportlab to requirements.txt.")
 
 st.caption("CREATED BY KORI PICKLE | BSHA Healthcare Operations & Compliance Engine")
-
