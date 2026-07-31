@@ -324,3 +324,16 @@ else:
     st.info("No data quality flag field detected in current scope.")
 
 
+st.markdown("---")
+st.subheader("Interactive Compliance Case Search & Filter")
+
+search_query = st.text_input("🔍 Search Active Cases by ID, Status, or Flag", "").strip()
+
+if search_query:
+    filtered_search_df = df_filtered[
+        df_filtered.astype(str).apply(lambda row: row.str.contains(search_query, case=False, na=False)).any(axis=1)
+    ]
+    st.write(f"Showing matching results for: **{search_query}** ({len(filtered_search_df)} matches found)")
+    st.dataframe(filtered_search_df, use_container_width=True)
+else:
+    st.info("Type a keyword or case ID above to instantly filter your active compliance queue.")
