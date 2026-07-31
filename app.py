@@ -856,7 +856,34 @@ with tab3:
     vols_alert(
         "Attestation Clause: All remediation logs committed to the persistent database constitute an immutable audit trail subject to internal quality management system (QMS) standards.",
         icon="📜",
+    )st.markdown("### Executive Portfolio Snapshot")
+snap_col1, snap_col2, snap_col3 = st.columns(3)
+
+with snap_col1:
+    st.metric(
+        label="Overall Compliance Index",
+        value=f"{compliance_index}%",
+        delta=f"{compliance_index - 80}% from Goal (80%)",
+        help="Target index for 'Grade A' status is 80% or higher.",
     )
+
+with snap_col2:
+    st.metric(
+        label="Critical Financial Risk",
+        value=f"${critical_revenue_risk:,.2f}",
+        delta=f"{len(df[df['Risk_Level'] == 'Critical'])} Critical Cases",
+        delta_color="inverse",
+        help="Dollar value tied specifically to Critical risk cases.",
+    )
+
+with snap_col3:
+    st.metric(
+        label="Portfolio Health Status",
+        value="Grade: C",
+        help="Immediate remediation required to clear flags.",
+    )
+
+
 
 st.divider()
 
@@ -865,3 +892,123 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown("### Dashboard Visual Analytics (Filtered Data)")
+chart_col1, chart_col2 = st.columns(2)
+
+with chart_col1:
+    st.markdown("Status Distribution (Filtered Cases)")
+    # USE FILTERED DF HERE
+    filtered_status_counts = filtered_df["Status"].value_counts()
+    st.bar_chart(filtered_status_counts, color=VOLS_ORANGE)
+
+with chart_col2:
+    st.markdown("Aging Breakdown (Filtered Cases)")
+    # USE FILTERED DF HERE
+    st.bar_chart(
+        filtered_df.set_index("Case_ID")["Days_Pending"], color=VOLS_ORANGE
+    )
+
+st.markdown("### Interactive Queue Filter Panel")
+
+# 1. Create a row of multiselect filters
+filter_col1, filter_col2, filter_col3 = st.columns(3)
+
+with filter_col1:
+    selected_statuses = st.multiselect(
+        "Filter by Status",
+        options=df["Status"].unique(),
+        default=df["Status"].unique(),
+    )
+
+with filter_col2:
+    selected_risks = st.multiselect(
+        "Filter by Risk Level",
+        options=df["Risk_Level"].unique(),
+        default=df["Risk_Level"].unique(),
+    )
+
+with filter_col3:
+    selected_flags = st.multiselect(
+        "Filter by Data Quality Flag",
+        options=df["Data_Quality_Flag"].unique(),
+        default=df["Data_Quality_Flag"].unique(),
+    )
+
+# 2. Apply all filters to the DataFrame
+filtered_search_df = df[
+    (df["Status"].isin(selected_statuses))
+    & (df["Risk_Level"].isin(selected_risks))
+    & (df["Data_Quality_Flag"].isin(selected_flags))
+]
+
+# 3. Show dynamic results alert
+if len(filtered_search_df) == 0:
+    vols_alert(
+        "No active cases match your selected filter criteria.", icon="🔍"
+    )
+else:
+    st.dataframe(filtered_search_df, use_container_width=True)
+    vols_alert(
+        f"Displaying {len(filtered_search_df)} active compliance cases based on selected filters."
+    )
+
+st.markdown("### Bulk Remediation Hub")
+vols_alert(
+    "Select multiple cases from the table below to resolve repetitive flags simultaneously."
+)
+
+# Use multiselect specifically designed for bulk actions
+selected_bulk_cases = st.multiselect(
+    "Select Case IDs for Bulk Audit Sign-Off",
+    df[df["Data_Quality_Flag"] != "Pass"]["Case_ID"],
+    help="Select multiple cases flagged with Missing Resolution Date/Missing closure evidence.",
+)
+
+col_b1, col_b2 = st.columns(2)
+with col_b1:
+    bulk_remediation_note = st.text_input(
+        "Enter Bulk Remediation Note (Applied to ALL selected cases)"
+    )
+
+with col_b2:
+    target_data_quality_state = st.selectbox(
+        "Set Final Data Quality State to:", ["Pass"]
+    )
+
+if st.button("Execute Bulk Remediation & Commit to SQLite"):
+    if user_role not in ["Compliance Manager", "System Admin"]:
+        vols_alert(
+            "Bulk Remediation requires Compliance Manager or System Admin privileges."
+        )
+    elif not selected_bulk_cases:
+        vols_alert("No cases selected for bulk remediation.")
+    elif not bulk_remediation_note:
+        vols_alert("Bulk remediation note cannot be empty.")
+    else:
+        # Commit each selected case one at a time within a SQLite transaction
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        for case in selected_bulk_cases:
+            target_exception = df.loc[df["Case_ID"] == case][
+                "Data_Quality_Flag"
+            ].values[0]
+            cursor.execute(
+                """
+                INSERT INTO audit_log (timestamp, case_id, exception, auditor, remediation_note, role)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    case,
+                    target_exception,
+                    current_user,
+                    f"BULK ACTION: {bulk_remediation_note}",
+                    user_role,
+                ),
+            )
+        conn.commit()
+        conn.close()
+        vols_alert(
+            f"Successfully executed bulk remediation for {len(selected_bulk_cases)} cases. Database updated."
+        )
+        st.rerun()
