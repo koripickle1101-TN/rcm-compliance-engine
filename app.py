@@ -625,3 +625,118 @@ with pdf_col:
 
 st.caption("CREATED BY KORI PICKLE | BSHA Healthcare Operations & Compliance Engine")
 
+import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+import io
+
+st.markdown(
+    """
+    <style>
+    [data-testid="stDataFrame"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 1px solid #E0E0E0 !important;
+        border-radius: 6px;
+    }
+    [data-testid="stDataFrame"] th {
+        background-color: #F8F9FA !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    [data-testid="stDataFrame"] td {
+        color: #111111 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.subheader("Data Ingestion & Import Hub")
+ingest_method = st.radio("Choose Ingestion Method", ["Upload CSV File", "Paste CSV Raw Data"], horizontal=True)
+
+uploaded_df = None
+
+if ingest_method == "Upload CSV File":
+    uploaded_file = st.file_uploader("Upload Claims or Prior Auth CSV", type=["csv"])
+    if uploaded_file is not None:
+        try:
+            uploaded_df = pd.read_csv(uploaded_file)
+            st.success("CSV file successfully loaded!")
+        except Exception as e:
+            st.error(f"Error loading CSV file: {e}")
+
+else:
+    pasted_data = st.text_area("Paste Raw CSV Data Here", height=150, placeholder="Case_ID,Status,Risk_Level,Days_Pending,Data_Quality_Flag,Claim_Value\nPAUTH-101,Approved,Moderate,3,Missing resolution date,9500.00")
+    if pasted_data.strip():
+        try:
+            uploaded_df = pd.read_csv(io.StringIO(pasted_data))
+            st.success("Pasted CSV data successfully parsed!")
+        except Exception as e:
+            st.error(f"Error parsing pasted CSV: {e}")
+
+if uploaded_df is not None:
+    st.subheader("Imported Data Preview")
+    st.dataframe(uploaded_df, use_container_width=True)
+    if st.button("Apply Imported Data to Work Queue"):
+        df = uploaded_df.copy()
+        st.success("Work queue updated with imported dataset!")
+
+remediated_cases = df[df['Data_Quality_Flag'] == 'Pass']
+total_recovered = remediated_cases['Claim_Value'].sum()
+
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("TOTAL PORTFOLIO VALUE", f"${df['Claim_Value'].sum():,.2f}")
+m2.metric("REVENUE AT RISK", f"${df[df['Data_Quality_Flag'] != 'Pass']['Claim_Value'].sum():,.2f}")
+m3.metric("REMEDIATED RECOVERY", f"${total_recovered:,.2f}")
+m4.metric("ACTIVE EXCEPTIONS", len(df[df['Data_Quality_Flag'] != 'Pass']))
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Exception Type Breakdown")
+    flag_counts = df['Data_Quality_Flag'].value_counts().reset_index()
+    flag_counts.columns = ['Exception', 'Count']
+    
+    fig_donut = px.pie(
+        flag_counts, 
+        values='Count', 
+        names='Exception', 
+        hole=0.4,
+        color_discrete_sequence=['#FF8200', '#000000', '#6C757D', '#FFB86C', '#343A40']
+    )
+    fig_donut.update_layout(margin=dict(t=20, b=20, l=10, r=10), showlegend=True)
+    st.plotly_chart(fig_donut, use_container_width=True)
+
+with col2:
+    st.subheader("Aging Breakdown (SLA Target: 7 Days)")
+    fig_bar = px.bar(
+        df, 
+        x='Case_ID', 
+        y='Days_Pending', 
+        color_discrete_sequence=['#FF8200']
+    )
+    fig_bar.add_hline(
+        y=7, 
+        line_dash="dash", 
+        line_color="#D9534F", 
+        annotation_text="7-Day SLA Threshold", 
+        annotation_position="top left"
+    )
+    fig_bar.update_layout(margin=dict(t=20, b=20, l=10, r=10))
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+if not audit_trail_df.empty:
+    csv_data = audit_trail_df.to_csv(index=False).encode('utf-8')
+    
+    st.download_button(
+        label="Download Full Audit Log (CSV)",
+        data=csv_data,
+        file_name="sqlite_audit_log_export.csv",
+        mime="text/csv",
+        key="download_audit_csv"
+    )
+else:
+    st.info("No audit logs available for export.")
+
