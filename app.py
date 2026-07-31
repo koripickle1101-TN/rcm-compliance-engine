@@ -27,9 +27,8 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    st.markdown("""
-    <style>
-    /* Fix multiselect tags (remove default red/pink pill background) */
+    
+  /* Fix multiselect tags (remove default red/pink pill background) */
     span[data-baseweb="tag"] {
         background-color: #1E1E1E !important;
         border: 1px solid #FF8200 !important;
