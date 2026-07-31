@@ -480,3 +480,60 @@ with col_badge2:
     else:
         st.warning("Immediate remediation required to clear high-risk compliance flags.")
 
+
+st.markdown("---")
+st.subheader("Persistent Audit & Remediation Logbook & Live State Update")
+
+if "remediation_audit_trail" not in st.session_state:
+    st.session_state.remediation_audit_trail = []
+
+if "Data_Quality_Flag" in df_filtered.columns and not df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"].empty:
+    selected_case_persist = st.selectbox(
+        "Select Case ID for Persistent Audit Sign-Off",
+        options=df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist(),
+        key="persist_case_select"
+    )
+
+    if selected_case_persist:
+        current_flag_val = df_filtered.loc[df_filtered["Case_ID"] == selected_case_persist, "Data_Quality_Flag"].values[0]
+        st.write(f"**Target Case Exception:** `{current_flag_val}`")
+        
+        audit_note = st.text_input("Enter Official Audit Remediation Note", placeholder="e.g., Verified missing documentation and closed loop.", key="persist_note")
+        auditor_name = st.text_input("Compliance Auditor / Reviewer Name", placeholder="e.g., K. Pickle, BSHA Compliance", key="persist_auditor")
+        
+        if st.button("💾 Commit Remediation & Update Queue State to 'Pass'", key="commit_audit_btn"):
+            if audit_note and auditor_name:
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Commit to audit trail log
+                st.session_state.remediation_audit_trail.append({
+                    "Timestamp": timestamp,
+                    "Case_ID": selected_case_persist,
+                    "Exception": current_flag_val,
+                    "Auditor": auditor_name,
+                    "Note": audit_note
+                })
+                
+                # Dynamically update the working dataframe in session state so the flag instantly becomes 'Pass'
+                st.session_state.working_df.loc[st.session_state.working_df["Case_ID"] == selected_case_persist, "Data_Quality_Flag"] = "Pass"
+                
+                st.success(f"Case {selected_case_persist} successfully remediated! Exception status updated to 'Pass' across the active queue.")
+                st.rerun()
+            else:
+                st.warning("Please provide both an audit note and your reviewer name before committing.")
+else:
+    st.info("All active cases in current view have passed data quality checks!")
+
+if st.session_state.remediation_audit_trail:
+    st.markdown("### 📋 Live Session Audit Trail")
+    audit_df = pd.DataFrame(st.session_state.remediation_audit_trail)
+    st.dataframe(audit_df, use_container_width=True)
+    
+    csv_audit = audit_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📥 Download Official Audit Log (.csv)",
+        data=csv_audit,
+        file_name="rcm_session_remediation_audit_log.csv",
+        mime="text/csv",
+        key="download_audit_log_btn"
+    )
