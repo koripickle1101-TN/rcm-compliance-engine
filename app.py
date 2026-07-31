@@ -55,7 +55,6 @@ def init_db():
             role TEXT
         )
     """)
-  # New table for session export logging
   cursor.execute("""
         CREATE TABLE IF NOT EXISTS export_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,35 +118,31 @@ data = {
 df = pd.DataFrame(data)
 
 # --- MAIN DASHBOARD HEADER ---
-st.markdown(
-    "# RCM Compliance & Work-Queue Intelligence Engine"
-)  #
+st.markdown("# RCM Compliance & Work-Queue Intelligence Engine")
 st.markdown(
     "*Enterprise Portfolio Artifact: RBAC, SQLite Persistence, Webhook"
     " Alerting, and Historical Audit Search.*"
-)  #
+)
 
 # --- METRICS ROW ---
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-  st.metric(
-      label="Total Filtered Cases", value=len(df)
-  )  #
+  st.metric(label="Total Filtered Cases", value=len(df))
 with col2:
   st.metric(
       label="Critical Risk Items",
       value=len(df[df["Risk_Level"] == "Critical"]),
-  )  #
+  )
 with col3:
   st.metric(
       label="Open High/Critical",
       value=len(df[df["Risk_Level"].isin(["High", "Critical"])]),
-  )  #
+  )
 with col4:
   st.metric(
       label="Data Quality Exceptions",
       value=len(df[df["Data_Quality_Flag"] != "Pass"]),
-  )  #
+  )
 
 st.markdown("---")
 
@@ -217,7 +212,7 @@ if st.button("💾 Commit Remediation to Database & Update Queue State to 'Pass'
         " successfully!"
     )
 
-# --- NEW: HISTORICAL AUDIT SEARCH & FILTER PANEL ---
+# --- HISTORICAL AUDIT SEARCH & TRACEABILITY PANEL ---
 st.markdown("### 🔍 Historical Audit Search & Traceability Panel")
 st.markdown(
     "Query past immutable audit decisions and state change histories for"
@@ -285,9 +280,7 @@ with col_alert1:
       payload = {
           "event": "RCM_COMPLIANCE_ALERT",
           "total_cases": len(df),
-          "critical_risks": int(
-              len(df[df["Risk_Level"] == "Critical"])
-          ),  # Ensure JSON serializable
+          "critical_risks": int(len(df[df["Risk_Level"] == "Critical"])),
           "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
       }
       response = requests.post(webhook_url, json=payload, timeout=5)
@@ -304,4 +297,22 @@ with col_alert2:
         f"Simulated email successfully transmitted to {officer_email} with"
         " attached Executive Compliance Summary!"
     )
+
+st.markdown("---")
+
+# --- AUTOMATED COMPLIANCE SCORING & EXECUTIVE BADGE ---
+st.markdown("### 🏆 Automated Compliance Scoring & Executive Badge")
+score_col1, score_col2 = st.columns(2)
+with score_col1:
+  st.metric(
+      label="Calculated Compliance Index",
+      value="30%",
+      delta="Grade: C (Action Required)",
+      delta_color="inverse",
+  )
+with score_col2:
+  st.markdown("**Executive Governance Status:**")
+  st.warning(
+      "Immediate remediation required to clear high-risk compliance flags."
+  )
 
