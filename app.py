@@ -4,14 +4,12 @@ import pandas as pd
 import requests
 import streamlit as st
 
-# --- PAGE CONFIGURATION & THEME ---
 st.set_page_config(
     page_title="RCM Compliance & Work-Queue Intelligence Engine",
     page_icon="🏥",
     layout="wide",
 )
 
-# Brand Color Palette: Tennessee Volunteers Theme
 VOLS_ORANGE = "#FF8200"
 WHITE = "#FFFFFF"
 BLACK = "#000000"
@@ -21,18 +19,55 @@ LIGHT_GRAY = "#F9F9F9"
 st.markdown(
     f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600&family=Great+Vibes&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Great+Vibes&display=swap');
 
     .stApp {{
         background-color: {WHITE};
         color: {BLACK};
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Inter', sans-serif !important;
     }}
     
-    h1, h2, h3, .editorial-header {{
-        font-family: 'Playfair Display', serif !important;
+    [data-testid="stSidebar"] {{
+        background-color: {DARK_GRAY};
+        color: {WHITE};
+        font-family: 'Inter', sans-serif !important;
+    }}
+
+    [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] span {{
+        color: {WHITE} !important;
+        font-family: 'Inter', sans-serif !important;
+    }}
+
+    h1, h2, h3, h4, h5, h6, .editorial-header {{
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 700 !important;
         color: {BLACK} !important;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.01em;
+    }}
+
+    input, textarea, select, [data-baseweb="select"] div, [data-baseweb="input"] div {{
+        background-color: {WHITE} !important;
+        color: {BLACK} !important;
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 500 !important;
+    }}
+
+    .stTextInput label, .stSelectbox label, .stTextArea label, .stCheckbox label {{
+        color: {BLACK} !important;
+        font-weight: 600 !important;
+        font-family: 'Inter', sans-serif !important;
+    }}
+
+    .stTextInput input, .stTextArea textarea {{
+        background-color: {WHITE} !important;
+        color: {BLACK} !important;
+        border: 1px solid #CCCCCC !important;
+        border-radius: 4px;
+    }}
+
+    .stTextInput input:focus, .stTextArea textarea:focus {{
+        border-color: {VOLS_ORANGE} !important;
+        box-shadow: 0 0 0 1px {VOLS_ORANGE} !important;
     }}
 
     .metric-card {{
@@ -46,19 +81,30 @@ st.markdown(
         box-shadow: 0 4px 20px rgba(0,0,0,0.03);
     }}
 
-    /* Editorial Footer Styling */
+    .sidebar-session-box {{
+        background-color: {BLACK};
+        border: 1px solid {VOLS_ORANGE};
+        border-left: 4px solid {VOLS_ORANGE};
+        padding: 12px;
+        border-radius: 4px;
+        color: {WHITE};
+        margin-top: 10px;
+        font-family: 'Inter', sans-serif !important;
+    }}
+
     .editorial-footer {{
         margin-top: 80px;
         padding: 40px 0;
         border-top: 1px solid {DARK_GRAY};
         text-align: center;
         background-color: {WHITE};
+        font-family: 'Inter', sans-serif !important;
     }}
 
     .footer-name {{
-        font-family: 'Playfair Display', serif;
+        font-family: 'Inter', sans-serif !important;
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: 700;
         color: {BLACK};
         letter-spacing: 0.05em;
         text-transform: uppercase;
@@ -84,12 +130,13 @@ st.markdown(
     .social-icons a {{
         color: {BLACK};
         text-decoration: none;
-        font-weight: 500;
+        font-weight: 600;
         font-size: 0.9rem;
         padding: 6px 12px;
         border: 1px solid {DARK_GRAY};
         border-radius: 20px;
         transition: all 0.3s ease;
+        font-family: 'Inter', sans-serif !important;
     }}
 
     .social-icons a:hover {{
@@ -102,7 +149,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- DATABASE SETUP & INITIALIZATION ---
 DB_NAME = "rcm_compliance.db"
 
 
@@ -157,7 +203,6 @@ def log_export_to_db(user, export_type, row_count):
   conn.close()
 
 
-# --- SIDEBAR: ROLE-BASED ACCESS CONTROL (RBAC) ---
 st.sidebar.markdown("Enterprise Governance")
 user_role = st.sidebar.selectbox(
     "Select Access Role", ["Junior Auditor", "Compliance Manager", "System Admin"]
@@ -167,9 +212,16 @@ current_user = st.sidebar.text_input(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.info(f"Current Session Tier: {user_role}")
+st.sidebar.markdown(
+    f"""
+    <div class="sidebar-session-box">
+        <small style="color: {VOLS_ORANGE}; font-weight: 700;">ACTIVE SESSION</small><br>
+        <strong>Tier:</strong> {user_role}
+    </div>
+""",
+    unsafe_allow_html=True,
+)
 
-# --- MOCK DATA GENERATION ---
 data = {
     "Case_ID": ["PAUTH-046", "PAUTH-047", "PAUTH-048", "PAUTH-049", "PAUTH-050"],
     "Status": [
@@ -191,7 +243,6 @@ data = {
 }
 df = pd.DataFrame(data)
 
-# Sync Live Database State to Dataframe Flags
 conn = sqlite3.connect(DB_NAME)
 audit_history_df = pd.read_sql_query("SELECT * FROM audit_log", conn)
 conn.close()
@@ -200,67 +251,62 @@ if not audit_history_df.empty:
   passed_cases = audit_history_df["case_id"].unique()
   df.loc[df["Case_ID"].isin(passed_cases), "Data_Quality_Flag"] = "Pass"
 
-# --- NAVIGATION TABS ---
 tab1, tab2, tab3 = st.tabs(
     ["Dashboard & Inspector", "Case Notes Stream", "Review & Attestation Guide"]
 )
 
 with tab1:
-  # --- MAIN DASHBOARD HEADER ---
   st.markdown(
-      "<h1 style='font-size: 2.8rem; margin-bottom: 0px;'>RCM Compliance &"
+      "<h1 style='font-size: 2.5rem; margin-bottom: 0px;'>RCM Compliance &"
       " Work-Queue Intelligence Engine</h1>",
       unsafe_allow_html=True,
   )
   st.markdown(
-      "<p style='font-size: 1.1rem; color: #222222; margin-top: 8px;"
-      " margin-bottom: 40px;'>Enterprise Portfolio Artifact: RBAC, SQLite"
+      "<p style='font-size: 1.05rem; color: #222222; margin-top: 8px;"
+      " margin-bottom: 30px;'>Enterprise Portfolio Artifact: RBAC, SQLite"
       " Persistence, Webhook Alerting, and Historical Audit Search.</p>",
       unsafe_allow_html=True,
   )
 
-  # --- METRICS ROW ---
   col1, col2, col3, col4 = st.columns(4)
   with col1:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>TOTAL CASES</small><h2"
-        f" style='color:{VOLS_ORANGE}!important;"
+        f" style='color:{DARK_GRAY}; font-weight:700;'>TOTAL"
+        f" CASES</small><h2 style='color:{VOLS_ORANGE}!important;"
         f" margin:0;'>{len(df)}</h2></div>",
         unsafe_allow_html=True,
     )
   with col2:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>CRITICAL RISKS</small><h2"
-        f" style='color:{VOLS_ORANGE}!important; margin:0;'>"
-        f"{len(df[df['Risk_Level'] == 'Critical'])}</h2></div>",
+        f" style='color:{DARK_GRAY}; font-weight:700;'>CRITICAL"
+        f" RISKS</small><h2 style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{len(df[df['Risk_Level'] == 'Critical'])}</h2></div>",
         unsafe_allow_html=True,
     )
   with col3:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>OPEN HIGH</small><h2"
-        f" style='color:{VOLS_ORANGE}!important; margin:0;'>"
-        f"{len(df[df['Risk_Level'].isin(['High', 'Critical'])])}</h2></div>",
+        f" style='color:{DARK_GRAY}; font-weight:700;'>OPEN"
+        f" HIGH</small><h2 style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{len(df[df['Risk_Level'].isin(['High', 'Critical'])])}</h2></div>",
         unsafe_allow_html=True,
     )
   with col4:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>EXCEPTIONS</small><h2"
-        f" style='color:{VOLS_ORANGE}!important; margin:0;'>"
-        f"{len(df[df['Data_Quality_Flag'] != 'Pass'])}</h2></div>",
+        f" style='color:{DARK_GRAY}; font-weight:700;'>EXCEPTIONS</small><h2"
+        f" style='color:{VOLS_ORANGE}!important;"
+        f" margin:0;'>{len(df[df['Data_Quality_Flag'] != 'Pass'])}</h2></div>",
         unsafe_allow_html=True,
     )
 
   st.markdown("---")
 
-  # --- ACTIVE WORK QUEUE TABLE ---
   st.markdown("### Active Work Queue & Data Quality Exceptions")
   st.dataframe(df, use_container_width=True)
 
-  # --- DASHBOARD VISUAL ANALYTICS ---
   st.markdown("### Dashboard Visual Analytics")
   chart_col1, chart_col2 = st.columns(2)
   with chart_col1:
@@ -273,7 +319,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- INTERACTIVE CASE DETAIL INSPECTOR ---
   st.markdown("### Interactive Case Detail Inspector")
   selected_inspect_case = st.selectbox(
       "Select Case ID to Review", df["Case_ID"], key="inspector_select"
@@ -284,24 +329,24 @@ with tab1:
   with insp_col1:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>CURRENT STATUS</small><h3"
-        f" style='color:{VOLS_ORANGE}!important;"
+        f" style='color:{DARK_GRAY}; font-weight:700;'>CURRENT"
+        f" STATUS</small><h3 style='color:{VOLS_ORANGE}!important;"
         f" margin:0;'>{inspect_row['Status']}</h3></div>",
         unsafe_allow_html=True,
     )
   with insp_col2:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>RISK LEVEL</small><h3"
-        f" style='color:{VOLS_ORANGE}!important;"
+        f" style='color:{DARK_GRAY}; font-weight:700;'>RISK"
+        f" LEVEL</small><h3 style='color:{VOLS_ORANGE}!important;"
         f" margin:0;'>{inspect_row['Risk_Level']}</h3></div>",
         unsafe_allow_html=True,
     )
   with insp_col3:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>DAYS PENDING</small><h3"
-        f" style='color:{VOLS_ORANGE}!important;"
+        f" style='color:{DARK_GRAY}; font-weight:700;'>DAYS"
+        f" PENDING</small><h3 style='color:{VOLS_ORANGE}!important;"
         f" margin:0;'>{inspect_row['Days_Pending']}</h3></div>",
         unsafe_allow_html=True,
     )
@@ -317,7 +362,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- QUEUE HEALTH & EXPORT CONTROLS ---
   st.markdown("### Queue Health & Export Controls")
   csv_data = df.to_csv(index=False).encode("utf-8")
 
@@ -328,12 +372,12 @@ with tab1:
   with col_qh1:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>OVERALL QUEUE COMPLIANCE"
-        f" HEALTH</small><h2"
+        f" style='color:{DARK_GRAY}; font-weight:700;'>OVERALL QUEUE"
+        f" COMPLIANCE HEALTH</small><h2"
         f" style='color:{VOLS_ORANGE}!important;"
         f" margin:0;'>{compliance_index}%</h2><p"
-        f" style='color:{VOLS_ORANGE}; margin:5px 0 0 0;'>🟢 {passed_count} of"
-        f" {len(df)} passing</p></div>",
+        f" style='color:{VOLS_ORANGE}; margin:5px 0 0 0; font-weight:600;'>🟠"
+        f" {passed_count} of {len(df)} passing</p></div>",
         unsafe_allow_html=True,
     )
   with col_qh2:
@@ -354,7 +398,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- RISK LEVEL BREAKDOWN & AUDIT SUMMARY ---
   st.markdown("### Risk Level Breakdown & Audit Summary")
   risk_summary_df = (
       df["Risk_Level"]
@@ -374,7 +417,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- AGING BREAKDOWN SUMMARY ---
   st.markdown("### Aging Breakdown Summary")
   aging_df = (
       df[["Case_ID", "Days_Pending", "Risk_Level"]]
@@ -393,7 +435,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- QUEUE ANALYTICS SUMMARY METRIC & SLA PERFORMANCE ---
   st.markdown("### Queue Analytics Summary Metric")
   tot_days = int(df["Days_Pending"].sum())
   avg_days = round(float(df["Days_Pending"].mean()), 1)
@@ -401,18 +442,16 @@ with tab1:
   with qmetric_col1:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>TOTAL CUMULATIVE DAYS"
-        f" PENDING</small><h2"
-        f" style='color:{VOLS_ORANGE}!important;"
+        f" style='color:{DARK_GRAY}; font-weight:700;'>TOTAL CUMULATIVE DAYS"
+        f" PENDING</small><h2 style='color:{VOLS_ORANGE}!important;"
         f" margin:0;'>{tot_days} Days</h2></div>",
         unsafe_allow_html=True,
     )
   with qmetric_col2:
     st.markdown(
         f"<div class='metric-card'><small"
-        f" style='color:{DARK_GRAY};'>AVERAGE DAYS PENDING PER"
-        f" CASE</small><h2"
-        f" style='color:{VOLS_ORANGE}!important;"
+        f" style='color:{DARK_GRAY}; font-weight:700;'>AVERAGE DAYS PENDING"
+        f" PER CASE</small><h2 style='color:{VOLS_ORANGE}!important;"
         f" margin:0;'>{avg_days} Days</h2></div>",
         unsafe_allow_html=True,
     )
@@ -435,7 +474,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- DATA QUALITY EXCEPTION AUDIT & RESOLUTION LOG ---
   st.markdown("### Data Quality Exception Audit & Resolution Log")
   dq_summary = (
       df[df["Data_Quality_Flag"] != "Pass"]
@@ -458,7 +496,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- INTERACTIVE COMPLIANCE CASE SEARCH & FILTER ---
   st.markdown("### Interactive Compliance Case Search & Filter")
   search_query = st.text_input(
       "Search Active Cases by ID, Status, or Flag",
@@ -481,7 +518,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- COMPLIANCE AUDIT EXPORT HUB & FULL SNAPSHOT ---
   st.markdown("### Compliance Audit Export Hub & Full Snapshot")
   full_snapshot_csv = df.to_csv(index=False).encode("utf-8")
   if st.download_button(
@@ -494,7 +530,6 @@ with tab1:
 
   st.markdown("---")
 
-  # --- EXECUTIVE COMPLIANCE SUMMARY & PRINT HUB ---
   st.markdown("### Executive Compliance Summary & Print Hub")
   exec_summary_text = f"""
 ==================================================
@@ -523,7 +558,6 @@ Calculated Compliance Index: {compliance_index}%
 
   st.markdown("---")
 
-  # --- PERSISTENT SQLITE AUDIT & REMEDIATION LOGBOOK ---
   st.markdown(
       "### Persistent SQLite Audit & Remediation Logbook & Live State Update"
   )
@@ -582,7 +616,6 @@ Calculated Compliance Index: {compliance_index}%
 
   st.markdown("---")
 
-  # --- HISTORICAL AUDIT SEARCH & TRACEABILITY PANEL ---
   st.markdown("### Historical Audit Search & Traceability Panel")
   st.markdown(
       "Query past immutable audit decisions and state change histories for"
@@ -638,7 +671,6 @@ Calculated Compliance Index: {compliance_index}%
 
   st.markdown("---")
 
-  # --- AUTOMATED COMPLIANCE ALERT & WEBHOOK DISPATCHER ---
   st.markdown("### Automated Compliance Alert & Webhook Dispatcher")
   st.markdown(
       "Instantly transmit executive summaries and critical exception flags via"
@@ -688,7 +720,6 @@ Calculated Compliance Index: {compliance_index}%
 
   st.markdown("---")
 
-  # --- AUTOMATED COMPLIANCE SCORING & EXECUTIVE BADGE ---
   st.markdown("### Automated Compliance Scoring & Executive Badge")
   score_col1, score_col2 = st.columns(2)
 
@@ -782,7 +813,6 @@ with tab3:
   )
   st.markdown("- **Pass**: Record meets all enterprise data quality criteria.")
 
-# --- FOOTER SECTION ---
 st.markdown(
     f"""
     <div class="editorial-footer">
@@ -796,3 +826,4 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
