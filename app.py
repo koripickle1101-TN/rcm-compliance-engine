@@ -44,6 +44,32 @@ st.markdown(
         letter-spacing: -0.01em;
     }}
 
+    /* Streamlit Tabs Styling */
+    button[data-baseweb="tab"] p {{
+        color: {BLACK} !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        font-family: 'Inter', sans-serif !important;
+    }}
+    button[aria-selected="true"] p {{
+        color: {VOLS_ORANGE} !important;
+        font-weight: 700 !important;
+    }}
+    div[data-baseweb="tab-highlight"] {{
+        background-color: {VOLS_ORANGE} !important;
+    }}
+
+    /* Override standard Streamlit green code badges */
+    code, .stMarkdown code, span[data-baseweb="tag"] {{
+        color: {VOLS_ORANGE} !important;
+        background-color: {BLACK} !important;
+        border: 1px solid {VOLS_ORANGE} !important;
+        padding: 3px 8px !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        font-family: 'Inter', sans-serif !important;
+    }}
+
     input, textarea, select, [data-baseweb="select"] div, [data-baseweb="input"] div {{
         background-color: {WHITE} !important;
         color: {BLACK} !important;
