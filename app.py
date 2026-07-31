@@ -894,3 +894,40 @@ with tab3:
         icon="📜",
     )
 
+st.divider()
+st.subheader("🚀 Realistic Next Upgrades to Implement")
+st.write(
+    "Here are four high-impact, realistic features that will take this application to the next level without cluttering the UI:"
+)
+
+col_u1, col_u2 = st.columns(2)
+
+with col_u1:
+    st.markdown(
+        f"""
+        <div class="metric-card" style="margin-bottom: 15px;">
+            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">1. Financial Exposure & Revenue at Risk Metrics</h4>
+            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> Revenue Cycle Management revolves around financial impact. Adding a dollar amount column to your dataset (such as Claim Value or Dollars at Risk) allows you to display total financial exposure alongside case counts. Showing that two critical cases represent $45,000 in uncollected revenue bridges administrative compliance with executive financial strategy.</p>
+        </div>
+        <div class="metric-card" style="margin-bottom: 15px;">
+            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">2. Dynamic Chart Synchronization</h4>
+            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> Currently, filtering by case ID or status filters the data tables. Tying the search bar and filter selections directly to the Plotly visual analytics charts ensures that when a user filters for Critical cases, the Aging Breakdown and Status Distribution charts update dynamically in real time.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col_u2:
+    st.markdown(
+        f"""
+        <div class="metric-card" style="margin-bottom: 15px;">
+            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">3. Bulk Work-Queue Remediation</h4>
+            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> In high-volume clearinghouse workflows, auditors often need to resolve repetitive flags at scale. Adding multi-select controls to assign an owner or update status across multiple selected Case IDs simultaneously mirrors real-world enterprise RCM operations.</p>
+        </div>
+        <div class="metric-card" style="margin-bottom: 15px;">
+            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">4. Styled PDF Audit Certificate Export</h4>
+            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> Upgrade the Executive Summary download button to generate a formatted PDF report using Python libraries like ReportLab or FPDF. Including styled headers, key metrics, and an official auditor sign-off block turns the export into a print-ready document for compliance committees.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
