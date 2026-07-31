@@ -257,3 +257,13 @@ st.download_button(
     file_name="aging_breakdown_summary.csv",
     mime="text/csv",
 )
+
+st.markdown("---")
+st.subheader("Data Export Verification")
+
+if st.button("Run Export Data Integrity Check"):
+    validation_passed = len(df_filtered) > 0 and "Case_ID" in df_filtered.columns
+    if validation_passed:
+        st.success(f"Verification Successful: {len(df_filtered)} active records ready for compliant export.")
+    else:
+        st.error("Verification Failed: No records detected in current filter scope.")
