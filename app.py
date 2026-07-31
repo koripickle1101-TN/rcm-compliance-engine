@@ -70,6 +70,10 @@ with tab1:
       "Choose Data Input Method", ["Default Data", "Upload CSV", "Paste Data"], key="data_input_method_radio"
   )
 
+  # Initialize session state for working dataframe to enable dynamic live remediation persistence
+  if "working_df" not in st.session_state:
+    st.session_state.working_df = load_default_data()
+
   df = None
 
   if input_method == "Upload CSV":
@@ -78,7 +82,7 @@ with tab1:
     )
     if uploaded_file is not None:
       try:
-        df = pd.read_csv(uploaded_file)
+        st.session_state.working_df = pd.read_csv(uploaded_file)
       except Exception as e:
         st.sidebar.error(f"Error reading file: {e}")
 
@@ -94,12 +98,11 @@ with tab1:
     )
     if pasted_data:
       try:
-        df = pd.read_csv(io.StringIO(pasted_data))
+        st.session_state.working_df = pd.read_csv(io.StringIO(pasted_data))
       except Exception as e:
         st.sidebar.error(f"Error parsing pasted text: {e}")
 
-  if df is None:
-    df = load_default_data()
+  df = st.session_state.working_df
 
   if "Risk_Level" in df.columns:
     risk_options = ["All"] + list(df["Risk_Level"].unique())
@@ -382,106 +385,6 @@ st.download_button(
 )
 
 st.markdown("---")
-st.subheader("Interactive Remediation & Sign-Off Workflow")
-
-if "Data_Quality_Flag" in df_filtered.columns and not df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"].empty:
-    selected_case_to_remediate = st.selectbox(
-        "Select Flagged Case ID for Remediation Sign-Off",
-        options=df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist(),
-        key="remediate_case_selectbox"
-    )
-
-    if selected_case_to_remediate:
-        current_flag = df_filtered.loc[df_filtered["Case_ID"] == selected_case_to_remediate, "Data_Quality_Flag"].values[0]
-        st.write(f"**Current Active Exception for {selected_case_to_remediate}:** `{current_flag}`")
-        
-        remediation_note = st.text_input("Enter Remediation Action / Resolution Note", placeholder="e.g., Missing owner assigned and verified.", key="remediate_note_input")
-        
-        if st.button("✅ Mark Case Resolved & Update Audit Log", key="remediate_submit_btn"):
-            st.success(f"Case {selected_case_to_remediate} successfully cleared! Remediation Logged: '{remediation_note}'")
-            st.info("Note: Session-state tracking can persist this update across your workflow filters.")
-else:
-    st.info("No active data quality exceptions found in current filter view for remediation.")
-
-st.markdown("---")
-st.subheader("Persistent Audit & Remediation Logbook")
-
-if "remediation_audit_trail" not in st.session_state:
-    st.session_state.remediation_audit_trail = []
-
-if "Data_Quality_Flag" in df_filtered.columns and not df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"].empty:
-    selected_case_persist = st.selectbox(
-        "Select Case ID for Persistent Audit Sign-Off",
-        options=df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist(),
-        key="persist_case_select"
-    )
-
-    if selected_case_persist:
-        current_flag_val = df_filtered.loc[df_filtered["Case_ID"] == selected_case_persist, "Data_Quality_Flag"].values[0]
-        st.write(f"**Target Case Exception:** `{current_flag_val}`")
-        
-        audit_note = st.text_input("Enter Official Audit Remediation Note", placeholder="e.g., Verified missing documentation and closed loop.", key="persist_note")
-        auditor_name = st.text_input("Compliance Auditor / Reviewer Name", placeholder="e.g., K. Pickle, BSHA Compliance", key="persist_auditor")
-        
-        if st.button("💾 Commit to Permanent Session Audit Log", key="commit_audit_btn"):
-            if audit_note and auditor_name:
-                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                
-                st.session_state.remediation_audit_trail.append({
-                    "Timestamp": timestamp,
-                    "Case_ID": selected_case_persist,
-                    "Exception": current_flag_val,
-                    "Auditor": auditor_name,
-                    "Note": audit_note
-                })
-                st.success(f"Audit record successfully committed for {selected_case_persist}!")
-            else:
-                st.warning("Please provide both an audit note and your reviewer name before committing.")
-else:
-    st.info("No flagged cases available in current view for persistent audit sign-off.")
-
-if st.session_state.remediation_audit_trail:
-    st.markdown("### 📋 Live Session Audit Trail")
-    audit_df = pd.DataFrame(st.session_state.remediation_audit_trail)
-    st.dataframe(audit_df, use_container_width=True)
-    
-    csv_audit = audit_df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="📥 Download Official Audit Log (.csv)",
-        data=csv_audit,
-        file_name="rcm_session_remediation_audit_log.csv",
-        mime="text/csv",
-        key="download_audit_log_btn"
-    )
-
-st.markdown("---")
-st.subheader("🏆 Automated Compliance Scoring & Executive Badge")
-
-total_cases_count = len(df_filtered)
-critical_cases_count = len(df_filtered[df_filtered["Risk_Level"] == "Critical"]) if "Risk_Level" in df_filtered.columns else 0
-unresolved_exceptions = len(df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]) if "Data_Quality_Flag" in df_filtered.columns else 0
-
-compliance_score = max(0, 100 - (critical_cases_count * 20) - (unresolved_exceptions * 10))
-
-if compliance_score >= 90:
-    grade, status_color = "Grade: A (Optimal Compliance)", "🟢"
-elif compliance_score >= 75:
-    grade, status_color = "Grade: B (Moderate Risk Control)", "🟡"
-else:
-    grade, status_color = "Grade: C (Action Required)", "🔴"
-
-col_badge1, col_badge2 = st.columns(2)
-with col_badge1:
-    st.metric(label="Calculated Compliance Index", value=f"{compliance_score}%", delta=f"{status_color} {grade}")
-with col_badge2:
-    st.write("**Executive Governance Status:**")
-    if compliance_score >= 75:
-        st.success("Queue meets baseline administrative quality thresholds for review.")
-    else:
-        st.warning("Immediate remediation required to clear high-risk compliance flags.")
-
-
-st.markdown("---")
 st.subheader("Persistent Audit & Remediation Logbook & Live State Update")
 
 if "remediation_audit_trail" not in st.session_state:
@@ -491,7 +394,7 @@ if "Data_Quality_Flag" in df_filtered.columns and not df_filtered[df_filtered["D
     selected_case_persist = st.selectbox(
         "Select Case ID for Persistent Audit Sign-Off",
         options=df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist(),
-        key="persist_case_select"
+        key="unique_persist_case_select_box"
     )
 
     if selected_case_persist:
@@ -537,3 +440,29 @@ if st.session_state.remediation_audit_trail:
         mime="text/csv",
         key="download_audit_log_btn"
     )
+
+st.markdown("---")
+st.subheader("🏆 Automated Compliance Scoring & Executive Badge")
+
+total_cases_count = len(df_filtered)
+critical_cases_count = len(df_filtered[df_filtered["Risk_Level"] == "Critical"]) if "Risk_Level" in df_filtered.columns else 0
+unresolved_exceptions = len(df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]) if "Data_Quality_Flag" in df_filtered.columns else 0
+
+compliance_score = max(0, 100 - (critical_cases_count * 20) - (unresolved_exceptions * 10))
+
+if compliance_score >= 90:
+    grade, status_color = "Grade: A (Optimal Compliance)", "🟢"
+elif compliance_score >= 75:
+    grade, status_color = "Grade: B (Moderate Risk Control)", "🟡"
+else:
+    grade, status_color = "Grade: C (Action Required)", "🔴"
+
+col_badge1, col_badge2 = st.columns(2)
+with col_badge1:
+    st.metric(label="Calculated Compliance Index", value=f"{compliance_score}%", delta=f"{status_color} {grade}")
+with col_badge2:
+    st.write("**Executive Governance Status:**")
+    if compliance_score >= 75:
+        st.success("Queue meets baseline administrative quality thresholds for review.")
+    else:
+        st.warning("Immediate remediation required to clear high-risk compliance flags.")
