@@ -27,7 +27,7 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
     }}
     
-    /* Sidebar Overrides (Removed Dark Gray) */
+    /* Sidebar Overrides */
     [data-testid="stSidebar"] {{
         background-color: {WHITE};
         border-right: 2px solid {VOLS_ORANGE};
@@ -67,7 +67,7 @@ st.markdown(
         box-shadow: 0 0 0 1px {VOLS_ORANGE} !important;
     }}
 
-    /* Metric Cards (Removed Light/Dark Gray, Applied White & Orange) */
+    /* Metric Cards */
     .metric-card {{
         background-color: {WHITE};
         padding: 24px;
@@ -77,7 +77,7 @@ st.markdown(
         box-shadow: 0 4px 20px rgba(0,0,0,0.03);
     }}
 
-    /* Sidebar Session Box (Removed Black/Gray, Applied White & Orange) */
+    /* Sidebar Session Box */
     .sidebar-session-box {{
         background-color: {WHITE};
         border: 1px solid {VOLS_ORANGE};
@@ -89,24 +89,13 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
     }}
 
-    /* Alert / Info Box Override (Removes all default Streamlit Blue colors) */
-    [data-testid="stAlert"] {{
-        background-color: {WHITE} !important;
-        border: 1px solid {VOLS_ORANGE} !important;
-        color: {BLACK} !important;
-    }}
-    
-    [data-testid="stAlert"] svg {{
-        fill: {VOLS_ORANGE} !important;
-        color: {VOLS_ORANGE} !important;
-    }}
-
-    /* Button Override (Removes blue outlines and focuses) */
+    /* Button Override */
     .stButton button, .stDownloadButton button {{
         background-color: {WHITE} !important;
         border: 1px solid {VOLS_ORANGE} !important;
         color: {BLACK} !important;
         font-family: 'Inter', sans-serif !important;
+        font-weight: 600 !important;
     }}
     
     .stButton button:hover, .stDownloadButton button:hover {{
@@ -143,35 +132,22 @@ st.markdown(
         margin: 10px 0 20px 0;
         text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.1);
     }}
-
-    .social-icons {{
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-top: 15px;
-    }}
-
-    .social-icons a {{
-        color: {BLACK};
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-        padding: 6px 12px;
-        border: 1px solid {VOLS_ORANGE};
-        border-radius: 20px;
-        transition: all 0.3s ease;
-        font-family: 'Inter', sans-serif !important;
-    }}
-
-    .social-icons a:hover {{
-        background-color: {VOLS_ORANGE};
-        border-color: {VOLS_ORANGE};
-        color: {WHITE};
-    }}
     </style>
 """,
     unsafe_allow_html=True,
 )
+
+# Custom Alert Function to REPLACE all default blue/yellow Streamlit boxes
+def vols_alert(message, icon="🟠"):
+    st.markdown(
+        f"""
+        <div style="background-color: {WHITE}; border: 1px solid {VOLS_ORANGE}; border-left: 5px solid {VOLS_ORANGE}; color: {BLACK}; padding: 14px; border-radius: 4px; margin-bottom: 16px; font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 500;">
+            {icon} {message}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 DB_NAME = "rcm_compliance.db"
 
@@ -336,10 +312,10 @@ with tab1:
     with chart_col1:
         st.markdown("Status Distribution")
         status_counts = df["Status"].value_counts()
-        st.bar_chart(status_counts)
+        st.bar_chart(status_counts, color=VOLS_ORANGE)
     with chart_col2:
         st.markdown("Aging Breakdown (Days Pending)")
-        st.bar_chart(df.set_index("Case_ID")["Days_Pending"])
+        st.bar_chart(df.set_index("Case_ID")["Days_Pending"], color=VOLS_ORANGE)
 
     st.markdown("---")
 
@@ -379,10 +355,9 @@ with tab1:
         f"Data Quality Flag Status for {selected_inspect_case}:"
         f" `{inspect_row['Data_Quality_Flag']}`"
     )
-    st.info(
-        "Boundary Notice: This tool is built strictly for educational workflow"
-        " simulation and does not contain PHI."
-    )
+    
+    # REPLACED st.info
+    vols_alert("Boundary Notice: This tool is built strictly for educational workflow simulation and does not contain PHI.")
 
     st.markdown("---")
 
@@ -413,12 +388,9 @@ with tab1:
                 "text/csv",
             ):
                 log_export_to_db(current_user, "Filtered Dataset CSV", len(df))
-                st.success("Export logged to SQLite successfully!")
+                vols_alert("Export logged to SQLite successfully!")
         else:
-            st.info(
-                "Export controls restricted to Compliance Managers and System"
-                " Admins."
-            )
+            vols_alert("Export controls restricted to Compliance Managers and System Admins.")
 
     st.markdown("---")
 
@@ -535,10 +507,7 @@ with tab1:
         ]
         st.dataframe(filtered_search_df, use_container_width=True)
     else:
-        st.info(
-            "Type a keyword or case ID above to instantly filter your active"
-            " compliance queue."
-        )
+        vols_alert("Type a keyword or case ID above to instantly filter your active compliance queue.")
 
     st.markdown("---")
 
@@ -608,11 +577,7 @@ Calculated Compliance Index: {compliance_index}%
 
     if st.button("Commit Remediation to Database & Update Queue State to 'Pass'"):
         if user_role == "Junior Auditor":
-            st.error(
-                "Access Denied: Junior Auditors do not have permission to execute"
-                " queue state overrides. Contact a Compliance Manager or System"
-                " Admin."
-            )
+            vols_alert("Access Denied: Junior Auditors do not have permission to execute queue state overrides. Contact a Compliance Manager or System Admin.")
         else:
             conn = sqlite3.connect(DB_NAME)
             cursor = conn.cursor()
@@ -632,18 +597,14 @@ Calculated Compliance Index: {compliance_index}%
             )
             conn.commit()
             conn.close()
-            st.success(
-                f"Remediation for {selected_case} committed to SQLite database"
-                " successfully!"
-            )
+            vols_alert(f"Remediation for {selected_case} committed to SQLite database successfully!")
             st.rerun()
 
     st.markdown("---")
 
     st.markdown("### Historical Audit Search & Traceability Panel")
     st.markdown(
-        "Query past immutable audit decisions and state change histories for"
-        " regulatory compliance reviews."
+        "Query past immutable audit decisions and state change histories for regulatory compliance reviews."
     )
 
     search_col1, search_col2 = st.columns(2)
@@ -679,10 +640,7 @@ Calculated Compliance Index: {compliance_index}%
         ):
             log_export_to_db(current_user, "Audit Log History CSV", len(audit_df))
     else:
-        st.info(
-            "No audit records found matching criteria. Commit a remediation above to"
-            " populate the database."
-        )
+        vols_alert("No audit records found matching criteria. Commit a remediation above to populate the database.")
 
     if export_log_view:
         st.markdown("Immutable Database Export History")
@@ -697,8 +655,7 @@ Calculated Compliance Index: {compliance_index}%
 
     st.markdown("### Automated Compliance Alert & Webhook Dispatcher")
     st.markdown(
-        "Instantly transmit executive summaries and critical exception flags via"
-        " webhook simulation or SMTP notification."
+        "Instantly transmit executive summaries and critical exception flags via webhook simulation or SMTP notification."
     )
 
     if user_role in ["Compliance Manager", "System Admin"]:
@@ -723,24 +680,15 @@ Calculated Compliance Index: {compliance_index}%
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     }
                     response = requests.post(webhook_url, json=payload, timeout=5)
-                    st.success(
-                        f"Webhook alert successfully dispatched! Response status code:"
-                        f" {response.status_code}"
-                    )
+                    vols_alert(f"Webhook alert successfully dispatched! Response status code: {response.status_code}")
                 except Exception as e:
-                    st.error(f"Webhook dispatch failed: {e}")
+                    vols_alert(f"Webhook dispatch failed: {e}")
 
         with col_alert2:
             if st.button("Simulate SMTP Email Dispatch"):
-                st.success(
-                    f"Simulated email successfully transmitted to {officer_email} with"
-                    " attached Executive Compliance Summary!"
-                )
+                vols_alert(f"Simulated email successfully transmitted to {officer_email} with attached Executive Compliance Summary!")
     else:
-        st.info(
-            "Webhook and alerting functions are restricted to Compliance Managers"
-            " and System Admins."
-        )
+        vols_alert("Webhook and alerting functions are restricted to Compliance Managers and System Admins.")
 
     st.markdown("---")
 
@@ -748,24 +696,18 @@ Calculated Compliance Index: {compliance_index}%
     score_col1, score_col2 = st.columns(2)
 
     with score_col1:
-        st.metric(
-            label="Calculated Compliance Index",
-            value=f"{compliance_index}%",
-            delta=(
-                "Grade: A (Fully Compliant)"
-                if compliance_index >= 80
-                else "Grade: C (Action Required)"
-            ),
-            delta_color="normal" if compliance_index >= 80 else "inverse",
+        grade_text = "Grade: A (Fully Compliant)" if compliance_index >= 80 else "Grade: C (Action Required)"
+        st.markdown(
+            f"<div class='metric-card'><small style='color:{BLACK}; font-weight:700;'>CALCULATED COMPLIANCE INDEX</small><h2 style='color:{VOLS_ORANGE}!important; margin:0;'>{compliance_index}%</h2><p style='color:{BLACK}; margin:5px 0 0 0; font-weight:600;'>{grade_text}</p></div>",
+            unsafe_allow_html=True
         )
+
     with score_col2:
         st.markdown("Executive Governance Status:")
         if compliance_index >= 80:
-            st.success("Work queue is fully compliant with internal data standards.")
+            vols_alert("Work queue is fully compliant with internal data standards.")
         else:
-            st.warning(
-                "Immediate remediation required to clear high-risk compliance flags."
-            )
+            vols_alert("Immediate remediation required to clear high-risk compliance flags.")
 
 with tab2:
     st.markdown("### Collaborative Case Notes & Annotations Stream")
@@ -780,7 +722,7 @@ with tab2:
 
     if st.button("Save Note to Database"):
         if not new_note.strip():
-            st.warning("Note content cannot be empty.")
+            vols_alert("Note content cannot be empty.")
         else:
             conn = sqlite3.connect(DB_NAME)
             cursor = conn.cursor()
@@ -798,7 +740,7 @@ with tab2:
             )
             conn.commit()
             conn.close()
-            st.success("Case note saved successfully!")
+            vols_alert("Case note saved successfully!")
             st.rerun()
 
     st.markdown("### Existing Case Notes Timeline")
@@ -811,29 +753,24 @@ with tab2:
     if not notes_df.empty:
         st.dataframe(notes_df, use_container_width=True)
     else:
-        st.info("No case notes recorded yet.")
+        vols_alert("No case notes recorded yet.")
 
 with tab3:
     st.markdown("### Review & Attestation Guide")
     st.markdown(
-        "This section provides operational definitions for data quality flags and"
-        " regulatory compliance reviews."
+        "This section provides operational definitions for data quality flags and regulatory compliance reviews."
     )
     st.markdown(
-        "- **Missing resolution date**: Case closure lacks a finalized date"
-        " stamp."
+        "- **Missing resolution date**: Case closure lacks a finalized date stamp."
     )
     st.markdown(
-        "- **Missing closure evidence**: Supporting documentation for resolution"
-        " is absent."
+        "- **Missing closure evidence**: Supporting documentation for resolution is absent."
     )
     st.markdown(
-        "- **Missing owner**: No designated analyst or handler is assigned to"
-        " the work item."
+        "- **Missing owner**: No designated analyst or handler is assigned to the work item."
     )
     st.markdown(
-        "- **Missing human review evidence**: Automated decision requires manual"
-        " secondary verification sign-off."
+        "- **Missing human review evidence**: Automated decision requires manual secondary verification sign-off."
     )
     st.markdown("- **Pass**: Record meets all enterprise data quality criteria.")
 
@@ -842,10 +779,6 @@ st.markdown(
     <div class="editorial-footer">
         <div class="footer-name">Created by Kori Pickle</div>
         <div class="cursive-signature">Kori Pickle</div>
-        <div class="social-icons">
-            <a href="https://linkedin.com" target="_blank">LinkedIn</a>
-            <a href="https://github.com" target="_blank">GitHub</a>
-        </div>
     </div>
 """,
     unsafe_allow_html=True,
