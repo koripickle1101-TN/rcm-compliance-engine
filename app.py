@@ -11,11 +11,12 @@ st.set_page_config(
     layout="wide",
 )
 
-# Brand Color Palette: Tennessee Volunteers Theme with Clean White Backgrounds
+# Brand Color Palette: Tennessee Volunteers Theme
 VOLS_ORANGE = "#FF8200"
 WHITE = "#FFFFFF"
 BLACK = "#000000"
 DARK_GRAY = "#222222"
+LIGHT_GRAY = "#F9F9F9"
 
 st.markdown(
     f"""
@@ -35,7 +36,7 @@ st.markdown(
     }}
 
     .metric-card {{
-        background-color: {WHITE};
+        background-color: {LIGHT_GRAY};
         padding: 24px;
         border-radius: 4px;
         border-left: 4px solid {VOLS_ORANGE};
@@ -795,4 +796,3 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
-
