@@ -7,7 +7,6 @@ import requests
 import io
 import plotly.express as px
 
-# Safe ReportLab import for PDF export
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
@@ -17,9 +16,6 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
-# ==========================================
-# PAGE CONFIGURATION & VOLS COLOR THEME (#FF8200)
-# ==========================================
 st.set_page_config(
     page_title="RCM Compliance Intelligence Engine",
     page_icon="⚡",
@@ -27,7 +23,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Pure White Background, Tennessee Orange (#FF8200), and Deep Black (#000000)
 st.markdown("""
     <style>
         :root {
@@ -36,29 +31,39 @@ st.markdown("""
             --vols-white: #FFFFFF;
         }
         
-        /* Pure White Background & App Surface */
         .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
             background-color: #FFFFFF !important;
             color: #000000 !important;
         }
         
-        /* Universal Typography - Force Black */
         h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown, small {
             color: #000000 !important;
         }
 
-        /* Inputs, Textareas & Selectboxes */
         div[data-baseweb="input"] > div, 
         div[data-baseweb="select"] > div,
+        div[class*="stSelectbox"] > div,
         .stTextInput input, 
         .stTextArea textarea {
             border: 2px solid #FF8200 !important;
-            background-color: #FFFFFF !important;
-            color: #000000 !important;
+            background-color: #FF8200 !important;
+            color: #FFFFFF !important;
             border-radius: 6px !important;
+            font-weight: bold !important;
         }
 
-        /* Dropdown Popover / Select Menu Colors */
+        div[data-baseweb="select"] span,
+        div[data-baseweb="select"] input,
+        div[data-baseweb="select"] div {
+            color: #FFFFFF !important;
+            font-weight: bold !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #FFFFFF !important;
+            opacity: 0.8 !important;
+        }
+
         div[data-baseweb="popover"], 
         div[data-baseweb="menu"], 
         ul[role="listbox"],
@@ -69,25 +74,23 @@ st.markdown("""
         }
         li[role="option"]:hover, li[aria-selected="true"] {
             background-color: #FF8200 !important;
-            color: #000000 !important;
+            color: #FFFFFF !important;
             font-weight: bold !important;
         }
 
-        /* Multiselect Tags */
         span[data-baseweb="tag"] {
             background-color: #FF8200 !important;
             border: 1px solid #000000 !important;
         }
         span[data-baseweb="tag"] span {
-            color: #000000 !important;
+            color: #FFFFFF !important;
             font-weight: bold !important;
         }
 
-        /* Global Buttons & Download Buttons Fix */
         div.stButton > button, 
         div.stDownloadButton > button {
             background-color: #FF8200 !important;
-            color: #000000 !important;
+            color: #FFFFFF !important;
             font-weight: bold !important;
             border-radius: 6px !important;
             border: 1.5px solid #000000 !important;
@@ -101,15 +104,49 @@ st.markdown("""
             color: #FFFFFF !important;
         }
 
-        /* Dataframe Styling Fix - Force White Surface */
         [data-testid="stDataFrame"], .stDataFrame, div[data-testid="stTable"] {
-            border: 1px solid #000000 !important;
+            border: 1px solid #FF8200 !important;
             border-radius: 6px !important;
             background-color: #FFFFFF !important;
             color: #000000 !important;
         }
+        [data-testid="stDataFrame"] th {
+            background-color: #FF8200 !important;
+            color: #FFFFFF !important;
+            font-weight: bold !important;
+        }
+        [data-testid="stDataFrame"] td {
+            color: #111111 !important;
+        }
 
-        /* Metric Cards */
+        div[data-testid="stExpander"] {
+            background-color: #FF8200 !important;
+            border: none !important;
+            border-radius: 6px !important;
+        }
+        div[data-testid="stExpander"] details {
+            background-color: #FF8200 !important;
+            color: #FFFFFF !important;
+            border-radius: 6px !important;
+        }
+        div[data-testid="stExpander"] summary,
+        div[data-testid="stExpander"] summary * {
+            color: #FFFFFF !important;
+            font-weight: bold !important;
+        }
+
+        section[data-testid="stFileUploaderDropzone"],
+        div[data-testid="stFileUploaderDropzone"] {
+            background-color: #FF8200 !important;
+            border: 2px dashed #FFFFFF !important;
+            border-radius: 8px !important;
+        }
+        section[data-testid="stFileUploaderDropzone"] *,
+        div[data-testid="stFileUploaderDropzone"] * {
+            color: #FFFFFF !important;
+            font-weight: bold !important;
+        }
+
         .metric-card {
             background-color: #FFFFFF;
             border-left: 6px solid #FF8200;
@@ -137,9 +174,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# DATABASE INITIALIZATION (SQLite)
-# ==========================================
 def init_db():
     conn = sqlite3.connect("rcm_audit_log.db")
     c = conn.cursor()
@@ -167,9 +201,6 @@ def init_db():
 
 init_db()
 
-# ==========================================
-# INITIAL DATASET & SESSION STATE
-# ==========================================
 if "df_cases" not in st.session_state:
     st.session_state.df_cases = pd.DataFrame([
         {"Case_ID": "PAUTH-046", "Status": "Approved", "Risk_Level": "Moderate", "Days_Pending": 4, "Data_Quality_Flag": "Missing resolution date", "Claim_Value": 8500.00},
@@ -179,9 +210,6 @@ if "df_cases" not in st.session_state:
         {"Case_ID": "PAUTH-050", "Status": "Appeal Readiness", "Risk_Level": "Critical", "Days_Pending": 10, "Data_Quality_Flag": "Pass", "Claim_Value": 20000.00}
     ])
 
-# ==========================================
-# PDF GENERATOR FUNCTION (ReportLab)
-# ==========================================
 def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -207,13 +235,12 @@ def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name)
     story.append(Paragraph("RCM COMPLIANCE & AUDIT CERTIFICATE", title_style))
     story.append(HRFlowable(width="100%", thickness=3, color=colors.HexColor("#FF8200"), spaceAfter=15))
     
-    meta_text = f"<b>Generated Timestamp:</b> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>" \
-                f"<b>Reviewer Authority:</b> {auditor_name}<br/>" \
-                f"<b>Governance Status:</b> Official Executive Audit Sign-Off"
+    meta_text = f"Generated Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>" \
+                f"Reviewer Authority: {auditor_name}<br/>" \
+                f"Governance Status: Official Executive Audit Sign-Off"
     story.append(Paragraph(meta_text, body_style))
     story.append(Spacer(1, 15))
 
-    # Summary Table Data
     table_data = [
         ["Metric", "Value"],
         ["Overall Compliance Score", f"{compliance_score}%"],
@@ -236,9 +263,8 @@ def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name)
     story.append(t)
     story.append(Spacer(1, 20))
 
-    story.append(Paragraph("<b>Detailed Work Queue Audit Snapshot:</b>", body_style))
+    story.append(Paragraph("Detailed Work Queue Audit Snapshot:", body_style))
     
-    # Cases Table
     case_headers = [["Case ID", "Status", "Risk Level", "Claim Value", "Compliance Flag"]]
     for _, row in st.session_state.df_cases.iterrows():
         case_headers.append([
@@ -263,9 +289,6 @@ def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name)
     buffer.seek(0)
     return buffer
 
-# ==========================================
-# SIDEBAR CONTROL & RBAC
-# ==========================================
 with st.sidebar:
     st.header("Governance & Data Controls")
     role = st.selectbox("Select Access Role", ["System Admin", "Compliance Manager", "Junior Auditor"])
@@ -295,15 +318,9 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"Active Authority: {role}")
 
-# ==========================================
-# MAIN DASHBOARD HEADER
-# ==========================================
 st.title("RCM Compliance & Work-Queue Intelligence Engine")
 st.caption("Enterprise Portfolio Artifact: RBAC, SQLite Persistence, Webhook Alerting, and Historical Audit Search.")
 
-# ==========================================
-# REVIEW & ATTESTATION GUIDE (TOP SECTION)
-# ==========================================
 with st.expander("Review & Attestation Standard Operating Guide", expanded=True):
     st.write("Compliance Review & Attestation Protocol")
     st.write("This intelligence engine provides real-time auditability and risk governance for Revenue Cycle Management (RCM) prior authorization queues and claims data quality.")
@@ -326,9 +343,6 @@ st.markdown("---")
 
 df = st.session_state.df_cases
 
-# ==========================================
-# FINANCIAL EXPOSURE METRICS
-# ==========================================
 total_portfolio_val = df["Claim_Value"].sum()
 revenue_at_risk = df[df["Data_Quality_Flag"] != "Pass"]["Claim_Value"].sum()
 critical_exposure = df[df["Risk_Level"] == "Critical"]["Claim_Value"].sum()
@@ -345,7 +359,6 @@ with c3:
 with c4:
     st.markdown(f'<div class="metric-card"><div class="metric-title">ACTIVE EXCEPTION FLAGS</div><div class="metric-value">{active_flags}</div></div>', unsafe_allow_html=True)
 
-# Executive Portfolio Snapshot
 passing_cases = len(df[df["Data_Quality_Flag"] == "Pass"])
 total_cases = len(df)
 compliance_index = int((passing_cases / total_cases) * 100) if total_cases > 0 else 0
@@ -362,9 +375,6 @@ with s3:
 
 st.markdown("---")
 
-# ==========================================
-# WORK QUEUE & DYNAMIC FILTER PANEL
-# ==========================================
 st.subheader("Active Work Queue & Data Quality Exceptions")
 
 f_col1, f_col2 = st.columns(2)
@@ -395,9 +405,6 @@ with ch2:
 
 st.markdown("---")
 
-# ==========================================
-# INTERACTIVE CASE DETAIL INSPECTOR
-# ==========================================
 st.subheader("Interactive Case Detail Inspector & Annotation Log")
 selected_case_id = st.selectbox("Select Case ID to Review", options=df["Case_ID"].tolist())
 case_row = df[df["Case_ID"] == selected_case_id].iloc[0]
@@ -439,9 +446,6 @@ with n_col2:
 
 st.markdown("---")
 
-# ==========================================
-# ADD NEW CLAIM FORM
-# ==========================================
 with st.expander("Add New Case / Claim Entry to Queue"):
     with st.form("add_case_form"):
         fc1, fc2, fc3 = st.columns(3)
@@ -464,9 +468,6 @@ with st.expander("Add New Case / Claim Entry to Queue"):
 
 st.markdown("---")
 
-# ==========================================
-# BULK WORK-QUEUE REMEDIATION
-# ==========================================
 st.subheader("Bulk Remediation Hub")
 open_cases = df[df["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist()
 
@@ -496,9 +497,6 @@ else:
 
 st.markdown("---")
 
-# ==========================================
-# PERSISTENT SINGLE SIGN-OFF PANEL
-# ==========================================
 st.subheader("Persistent SQLite Audit & Remediation Logbook & Live State Update")
 rem_case_id = st.selectbox("Select Case ID for Persistent SQLite Audit Sign-Off", options=df["Case_ID"].tolist(), key="single_signoff_select")
 target_row = df[df["Case_ID"] == rem_case_id].iloc[0]
@@ -524,27 +522,35 @@ if st.button("Commit Remediation to Database & Update Queue State to Pass"):
 
 st.markdown("---")
 
-# ==========================================
-# PERSISTENT AUDIT SEARCH PANEL
-# ==========================================
 st.subheader("Historical Audit Search & Traceability Panel")
 conn = sqlite3.connect("rcm_audit_log.db")
-audit_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC", conn)
+audit_trail_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC", conn)
 conn.close()
 
 search_term = st.text_input("Search Audit History (Case ID or Auditor)")
 if search_term:
-    audit_df = audit_df[audit_df["case_id"].str.contains(search_term, case=False, na=False) | 
-                        audit_df["auditor"].str.contains(search_term, case=False, na=False)]
+    audit_display_df = audit_trail_df[audit_trail_df["case_id"].str.contains(search_term, case=False, na=False) | 
+                                      audit_trail_df["auditor"].str.contains(search_term, case=False, na=False)]
+else:
+    audit_display_df = audit_trail_df
 
 st.write("Official SQLite Audit Trail Records")
-st.dataframe(audit_df, use_container_width=True)
+st.dataframe(audit_display_df, use_container_width=True)
+
+if not audit_trail_df.empty:
+    csv_data = audit_trail_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download Full Audit Log (CSV)",
+        data=csv_data,
+        file_name="sqlite_audit_log_export.csv",
+        mime="text/csv",
+        key="download_audit_csv"
+    )
+else:
+    st.info("No audit logs available for export.")
 
 st.markdown("---")
 
-# ==========================================
-# AUTOMATED ALERTS & WEBHOOK DISPATCHER
-# ==========================================
 st.subheader("Automated Compliance Alert & Webhook Dispatcher")
 webhook_url = st.text_input("Webhook Endpoint URL (Slack / Teams / Custom)", value="https://httpbin.org/post")
 email_recipient = st.text_input("Compliance Officer Email", value="koripickle1101@gmail.com")
@@ -573,9 +579,6 @@ with w_col2:
 
 st.markdown("---")
 
-# ==========================================
-# EXECUTIVE REPORT EXPORTS & PDF
-# ==========================================
 st.subheader("Automated Compliance Scoring & Executive PDF Export")
 
 summary_text = f"""==================================================
@@ -625,243 +628,3 @@ with pdf_col:
 
 st.caption("CREATED BY KORI PICKLE | BSHA Healthcare Operations & Compliance Engine")
 
-import streamlit as st
-import plotly.express as px
-import plotly.graph_objects as go
-import pandas as pd
-import io
-
-st.markdown(
-    """
-    <style>
-    [data-testid="stDataFrame"] {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border: 1px solid #E0E0E0 !important;
-        border-radius: 6px;
-    }
-    [data-testid="stDataFrame"] th {
-        background-color: #F8F9FA !important;
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-    [data-testid="stDataFrame"] td {
-        color: #111111 !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-st.subheader("Data Ingestion & Import Hub")
-ingest_method = st.radio("Choose Ingestion Method", ["Upload CSV File", "Paste CSV Raw Data"], horizontal=True)
-
-uploaded_df = None
-
-if ingest_method == "Upload CSV File":
-    uploaded_file = st.file_uploader("Upload Claims or Prior Auth CSV", type=["csv"])
-    if uploaded_file is not None:
-        try:
-            uploaded_df = pd.read_csv(uploaded_file)
-            st.success("CSV file successfully loaded!")
-        except Exception as e:
-            st.error(f"Error loading CSV file: {e}")
-
-else:
-    pasted_data = st.text_area("Paste Raw CSV Data Here", height=150, placeholder="Case_ID,Status,Risk_Level,Days_Pending,Data_Quality_Flag,Claim_Value\nPAUTH-101,Approved,Moderate,3,Missing resolution date,9500.00")
-    if pasted_data.strip():
-        try:
-            uploaded_df = pd.read_csv(io.StringIO(pasted_data))
-            st.success("Pasted CSV data successfully parsed!")
-        except Exception as e:
-            st.error(f"Error parsing pasted CSV: {e}")
-
-if uploaded_df is not None:
-    st.subheader("Imported Data Preview")
-    st.dataframe(uploaded_df, use_container_width=True)
-    if st.button("Apply Imported Data to Work Queue"):
-        df = uploaded_df.copy()
-        st.success("Work queue updated with imported dataset!")
-
-remediated_cases = df[df['Data_Quality_Flag'] == 'Pass']
-total_recovered = remediated_cases['Claim_Value'].sum()
-
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("TOTAL PORTFOLIO VALUE", f"${df['Claim_Value'].sum():,.2f}")
-m2.metric("REVENUE AT RISK", f"${df[df['Data_Quality_Flag'] != 'Pass']['Claim_Value'].sum():,.2f}")
-m3.metric("REMEDIATED RECOVERY", f"${total_recovered:,.2f}")
-m4.metric("ACTIVE EXCEPTIONS", len(df[df['Data_Quality_Flag'] != 'Pass']))
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Exception Type Breakdown")
-    flag_counts = df['Data_Quality_Flag'].value_counts().reset_index()
-    flag_counts.columns = ['Exception', 'Count']
-    
-    fig_donut = px.pie(
-        flag_counts, 
-        values='Count', 
-        names='Exception', 
-        hole=0.4,
-        color_discrete_sequence=['#FF8200', '#000000', '#6C757D', '#FFB86C', '#343A40']
-    )
-    fig_donut.update_layout(margin=dict(t=20, b=20, l=10, r=10), showlegend=True)
-    st.plotly_chart(fig_donut, use_container_width=True)
-
-with col2:
-    st.subheader("Aging Breakdown (SLA Target: 7 Days)")
-    fig_bar = px.bar(
-        df, 
-        x='Case_ID', 
-        y='Days_Pending', 
-        color_discrete_sequence=['#FF8200']
-    )
-    fig_bar.add_hline(
-        y=7, 
-        line_dash="dash", 
-        line_color="#D9534F", 
-        annotation_text="7-Day SLA Threshold", 
-        annotation_position="top left"
-    )
-    fig_bar.update_layout(margin=dict(t=20, b=20, l=10, r=10))
-    st.plotly_chart(fig_bar, use_container_width=True)
-
-if not audit_trail_df.empty:
-    csv_data = audit_trail_df.to_csv(index=False).encode('utf-8')
-    
-    st.download_button(
-        label="Download Full Audit Log (CSV)",
-        data=csv_data,
-        file_name="sqlite_audit_log_export.csv",
-        mime="text/csv",
-        key="download_audit_csv"
-    )
-else:
-    st.info("No audit logs available for export.")
-
-import streamlit as st
-
-st.markdown(
-    """
-    <style>
-    /* 1. Target Selectboxes, Dropdowns, and Inputs */
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="input"] > div,
-    div[class*="stSelectbox"] > div {
-        background-color: #FF8200 !important;
-        color: #FFFFFF !important;
-        border-radius: 6px !important;
-        border: None !important;
-    }
-    div[data-baseweb="select"] span,
-    div[data-baseweb="select"] input {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-    /* 2. Target Expanders (Standard Operating Guide Box) */
-    div[data-testid="stExpander"] {
-        background-color: #FF8200 !important;
-        border: None !important;
-        border-radius: 6px !important;
-    }
-    div[data-testid="stExpander"] details {
-        background-color: #FF8200 !important;
-        color: #FFFFFF !important;
-        border-radius: 6px !important;
-    }
-    div[data-testid="stExpander"] summary {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-    /* 3. Target File Upload Drop Zone */
-    section[data-testid="stFileUploaderDropzone"] {
-        background-color: #FF8200 !important;
-        border: 2px dashed #FFFFFF !important;
-        color: #FFFFFF !important;
-        border-radius: 8px !important;
-    }
-    section[data-testid="stFileUploaderDropzone"] span,
-    section[data-testid="stFileUploaderDropzone"] button {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-    /* 4. Target Dataframe / Table Headers */
-    [data-testid="stDataFrame"] {
-        border: 1px solid #FF8200 !important;
-    }
-    [data-testid="stDataFrame"] th {
-        background-color: #FF8200 !important;
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-import streamlit as st
-
-st.markdown(
-    """
-    <style>
-    /* 1. Target Selectboxes, Dropdowns, and Inputs */
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="input"] > div,
-    div[class*="stSelectbox"] > div {
-        background-color: #FF8200 !important;
-        color: #FFFFFF !important;
-        border-radius: 6px !important;
-        border: None !important;
-    }
-    div[data-baseweb="select"] span,
-    div[data-baseweb="select"] input {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-    /* 2. Target Expanders (Standard Operating Guide Box) */
-    div[data-testid="stExpander"] {
-        background-color: #FF8200 !important;
-        border: None !important;
-        border-radius: 6px !important;
-    }
-    div[data-testid="stExpander"] details {
-        background-color: #FF8200 !important;
-        color: #FFFFFF !important;
-        border-radius: 6px !important;
-    }
-    div[data-testid="stExpander"] summary {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-    /* 3. Target File Upload Drop Zone */
-    section[data-testid="stFileUploaderDropzone"] {
-        background-color: #FF8200 !important;
-        border: 2px dashed #FFFFFF !important;
-        color: #FFFFFF !important;
-        border-radius: 8px !important;
-    }
-    section[data-testid="stFileUploaderDropzone"] span,
-    section[data-testid="stFileUploaderDropzone"] button {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-
-    /* 4. Target Dataframe / Table Headers */
-    [data-testid="stDataFrame"] {
-        border: 1px solid #FF8200 !important;
-    }
-    [data-testid="stDataFrame"] th {
-        background-color: #FF8200 !important;
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
