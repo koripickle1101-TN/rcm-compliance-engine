@@ -6,7 +6,6 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-# ReportLab Imports for Executive PDF Generation
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
@@ -16,9 +15,6 @@ try:
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
-# ------------------------------------------------------------------------------
-# 1. PAGE CONFIGURATION & MASTER BRAND CSS
-# ------------------------------------------------------------------------------
 st.set_page_config(
     page_title="RCM Compliance Intelligence Engine",
     page_icon="🛡️",
@@ -27,7 +23,6 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    /* 1. Reset base page background and text colors */
     .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
         background-color: #FFFFFF !important;
         color: #000000 !important;
@@ -37,7 +32,6 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* 2. Style Multiselect Pill Tags in Tennessee Orange */
     span[data-baseweb="tag"] {
         background-color: #FF8200 !important;
         border: 1px solid #FF8200 !important;
@@ -50,7 +44,6 @@ st.markdown("""
         fill: #FFFFFF !important;
     }
 
-    /* 3. Fix Input Fields & Text Areas with White background & Orange borders */
     div[data-baseweb="input"] > div,
     div[data-baseweb="base-input"],
     div[data-baseweb="textarea"] > div,
@@ -74,7 +67,6 @@ st.markdown("""
         -webkit-text-fill-color: #666666 !important;
     }
 
-    /* 4. Dropdowns & Selectboxes in Tennessee Orange */
     div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
         background-color: #FFFFFF !important;
         border: 1px solid #FF8200 !important;
@@ -87,7 +79,6 @@ st.markdown("""
         color: #FFFFFF !important;
     }
 
-    /* 5. Accordion/Expander Styling */
     div[data-testid="stExpander"] {
         border: 1px solid #E0E0E0 !important;
         border-radius: 6px !important;
@@ -107,7 +98,6 @@ st.markdown("""
         color: #111111 !important;
     }
 
-    /* 6. Metric Cards */
     .metric-card {
         background-color: #FFFFFF;
         border-left: 6px solid #FF8200;
@@ -134,7 +124,6 @@ st.markdown("""
         white-space: nowrap !important;
     }
 
-    /* 7. Action Buttons */
     div.stButton > button, div.stDownloadButton > button {
         background-color: #FF8200 !important;
         color: #FFFFFF !important;
@@ -149,7 +138,6 @@ st.markdown("""
         color: #FFFFFF !important;
     }
 
-    /* 8. DataFrames & Tables */
     [data-testid="stDataFrame"], .stDataFrame, div[data-testid="stTable"] {
         border: 1px solid #FF8200 !important;
         border-radius: 6px !important;
@@ -165,7 +153,6 @@ st.markdown("""
         color: #111111 !important;
     }
 
-    /* 9. File Uploader */
     section[data-testid="stFileUploaderDropzone"],
     div[data-testid="stFileUploaderDropzone"] {
         background-color: #FF8200 !important;
@@ -180,12 +167,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-    </style>
-""", unsafe_allow_html=True)
-
-# ------------------------------------------------------------------------------
-# 2. DATABASE INITIALIZATION & STATE MANAGEMENT
-# ------------------------------------------------------------------------------
 def init_db():
     conn = sqlite3.connect("rcm_audit_log.db")
     c = conn.cursor()
@@ -222,9 +203,6 @@ if "df_cases" not in st.session_state:
         {"Case_ID": "PAUTH-050", "Status": "Appeal Readiness", "Risk_Level": "Critical", "Days_Pending": 10, "Data_Quality_Flag": "Pass", "Claim_Value": 20000.00}
     ])
 
-# ------------------------------------------------------------------------------
-# 3. PDF REPORT GENERATOR
-# ------------------------------------------------------------------------------
 def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -304,9 +282,6 @@ def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name)
     buffer.seek(0)
     return buffer
 
-# ------------------------------------------------------------------------------
-# 4. SIDEBAR NAVIGATION & DATA CONTROLS
-# ------------------------------------------------------------------------------
 with st.sidebar:
     st.header("Governance & Data Controls")
     role = st.selectbox("Select Access Role", ["System Admin", "Compliance Manager", "Junior Auditor"])
@@ -336,9 +311,6 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"Active Authority: {role}")
 
-# ------------------------------------------------------------------------------
-# 5. MAIN APPLICATION HEADER & GUIDES
-# ------------------------------------------------------------------------------
 st.title("RCM Compliance & Work-Queue Intelligence Engine")
 st.caption("Enterprise Portfolio Artifact: RBAC, SQLite Persistence, Webhook Alerting, and Historical Audit Search.")
 
@@ -362,9 +334,6 @@ with st.expander("Review & Attestation Standard Operating Guide", expanded=True)
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 6. EXECUTIVE METRICS & DASHBOARD
-# ------------------------------------------------------------------------------
 df = st.session_state.df_cases
 
 total_portfolio_val = df["Claim_Value"].sum()
@@ -399,9 +368,6 @@ with s3:
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 7. WORK QUEUE & VISUALIZATIONS
-# ------------------------------------------------------------------------------
 st.subheader("Active Work Queue & Data Quality Exceptions")
 
 f_col1, f_col2 = st.columns(2)
@@ -432,9 +398,6 @@ with ch2:
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 8. INSPECTOR & ANNOTATION LOG
-# ------------------------------------------------------------------------------
 st.subheader("Interactive Case Detail Inspector & Annotation Log")
 selected_case_id = st.selectbox("Select Case ID to Review", options=df["Case_ID"].tolist())
 case_row = df[df["Case_ID"] == selected_case_id].iloc[0]
@@ -476,9 +439,6 @@ with n_col2:
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 9. ADD CASE FORM
-# ------------------------------------------------------------------------------
 with st.expander("Add New Case / Claim Entry to Queue"):
     with st.form("add_case_form"):
         fc1, fc2, fc3 = st.columns(3)
@@ -501,9 +461,6 @@ with st.expander("Add New Case / Claim Entry to Queue"):
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 10. BULK REMEDIATION HUB
-# ------------------------------------------------------------------------------
 st.subheader("Bulk Remediation Hub")
 open_cases = df[df["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist()
 
@@ -533,9 +490,6 @@ else:
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 11. SINGLE SIGN-OFF & STATE UPDATE
-# ------------------------------------------------------------------------------
 st.subheader("Persistent SQLite Audit & Remediation Logbook & Live State Update")
 rem_case_id = st.selectbox("Select Case ID for Persistent SQLite Audit Sign-Off", options=df["Case_ID"].tolist(), key="single_signoff_select")
 target_row = df[df["Case_ID"] == rem_case_id].iloc[0]
@@ -561,9 +515,6 @@ if st.button("Commit Remediation to Database & Update Queue State to Pass"):
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 12. HISTORICAL AUDIT SEARCH PANEL
-# ------------------------------------------------------------------------------
 st.subheader("Historical Audit Search & Traceability Panel")
 conn = sqlite3.connect("rcm_audit_log.db")
 audit_trail_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC", conn)
@@ -593,9 +544,6 @@ else:
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 13. WEBHOOKS & AUTOMATED DISPATCH
-# ------------------------------------------------------------------------------
 st.subheader("Automated Compliance Alert & Webhook Dispatcher")
 webhook_url = st.text_input("Webhook Endpoint URL (Slack / Teams / Custom)", value="https://httpbin.org/post")
 email_recipient = st.text_input("Compliance Officer Email", value="koripickle1101@gmail.com")
@@ -624,9 +572,6 @@ with w_col2:
 
 st.markdown("---")
 
-# ------------------------------------------------------------------------------
-# 14. COMPLIANCE SCORING & EXPORTS
-# ------------------------------------------------------------------------------
 st.subheader("Automated Compliance Scoring & Executive PDF Export")
 
 summary_text = f"""==================================================
@@ -675,3 +620,4 @@ with pdf_col:
         st.error("ReportLab library is not installed. Please add reportlab to requirements.txt.")
 
 st.caption("CREATED BY KORI PICKLE | BSHA Healthcare Operations & Compliance Engine")
+
