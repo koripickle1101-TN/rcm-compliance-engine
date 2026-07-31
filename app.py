@@ -5,19 +5,20 @@ import sqlite3
 import datetime
 import requests
 import io
+import plotly.express as px
 
-# Safe ReportLab import
+# Safe ReportLab import for PDF export
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
 # ==========================================
-# PAGE CONFIG & STRICT TENNESSEE VOLS THEME (#FF8200)
+# PAGE CONFIGURATION & VOLS COLOR THEME (#FF8200)
 # ==========================================
 st.set_page_config(
     page_title="RCM Compliance Intelligence Engine",
@@ -26,7 +27,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for Pure White (#FFFFFF), Vols Orange (#FF8200), and Crisp Black (#000000)
+# Pure White Background, Tennessee Orange (#FF8200), and Deep Black (#000000)
 st.markdown("""
     <style>
         :root {
@@ -35,18 +36,18 @@ st.markdown("""
             --vols-white: #FFFFFF;
         }
         
-        /* Pure White App Surface */
-        .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        /* Pure White Background & App Surface */
+        .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
             background-color: #FFFFFF !important;
             color: #000000 !important;
         }
         
-        /* Black Typography */
-        h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown {
+        /* Universal Typography - Force Black */
+        h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown, small {
             color: #000000 !important;
         }
 
-        /* Inputs & Selectboxes */
+        /* Inputs, Textareas & Selectboxes */
         div[data-baseweb="input"] > div, 
         div[data-baseweb="select"] > div,
         .stTextInput input, 
@@ -55,6 +56,21 @@ st.markdown("""
             background-color: #FFFFFF !important;
             color: #000000 !important;
             border-radius: 6px !important;
+        }
+
+        /* Dropdown Popover / Select Menu Colors */
+        div[data-baseweb="popover"], 
+        div[data-baseweb="menu"], 
+        ul[role="listbox"],
+        li[role="option"] {
+            background-color: #FFFFFF !important;
+            color: #000000 !important;
+            border: 1px solid #FF8200 !important;
+        }
+        li[role="option"]:hover, li[aria-selected="true"] {
+            background-color: #FF8200 !important;
+            color: #000000 !important;
+            font-weight: bold !important;
         }
 
         /* Multiselect Tags */
@@ -85,11 +101,12 @@ st.markdown("""
             color: #FFFFFF !important;
         }
 
-        /* Dataframe Styling Fix */
-        [data-testid="stDataFrame"], .stDataFrame {
+        /* Dataframe Styling Fix - Force White Surface */
+        [data-testid="stDataFrame"], .stDataFrame, div[data-testid="stTable"] {
             border: 1px solid #000000 !important;
             border-radius: 6px !important;
             background-color: #FFFFFF !important;
+            color: #000000 !important;
         }
 
         /* Metric Cards */
@@ -121,7 +138,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# DATABASE INITIALIZATION
+# DATABASE INITIALIZATION (SQLite)
 # ==========================================
 def init_db():
     conn = sqlite3.connect("rcm_audit_log.db")
@@ -151,7 +168,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# SESSION STATE INITIALIZATION
+# INITIAL DATASET & SESSION STATE
 # ==========================================
 if "df_cases" not in st.session_state:
     st.session_state.df_cases = pd.DataFrame([
@@ -163,7 +180,91 @@ if "df_cases" not in st.session_state:
     ])
 
 # ==========================================
-# SIDEBAR CONTROL PANEL & INGESTION HUB
+# PDF GENERATOR FUNCTION (ReportLab)
+# ==========================================
+def generate_pdf_report(compliance_score, total_val, revenue_risk, auditor_name):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontSize=20,
+        textColor=colors.HexColor("#FF8200"),
+        spaceAfter=10
+    )
+    
+    body_style = ParagraphStyle(
+        'BodyStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        spaceAfter=6
+    )
+
+    story = []
+    story.append(Paragraph("RCM COMPLIANCE & AUDIT CERTIFICATE", title_style))
+    story.append(HRFlowable(width="100%", thickness=3, color=colors.HexColor("#FF8200"), spaceAfter=15))
+    
+    meta_text = f"<b>Generated Timestamp:</b> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/>" \
+                f"<b>Reviewer Authority:</b> {auditor_name}<br/>" \
+                f"<b>Governance Status:</b> Official Executive Audit Sign-Off"
+    story.append(Paragraph(meta_text, body_style))
+    story.append(Spacer(1, 15))
+
+    # Summary Table Data
+    table_data = [
+        ["Metric", "Value"],
+        ["Overall Compliance Score", f"{compliance_score}%"],
+        ["Total Portfolio Value", f"${total_val:,.2f}"],
+        ["Revenue at Risk (Active Exceptions)", f"${revenue_risk:,.2f}"],
+        ["Audit Certification Grade", "Grade A (Compliant)" if compliance_score == 100 else "Grade Action Required"]
+    ]
+
+    t = Table(table_data, colWidths=[250, 250])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#FF8200")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,0), 8),
+        ('BACKGROUND', (0,1), (-1,-1), colors.HexColor("#F8F9FA")),
+        ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#CCCCCC")),
+        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 20))
+
+    story.append(Paragraph("<b>Detailed Work Queue Audit Snapshot:</b>", body_style))
+    
+    # Cases Table
+    case_headers = [["Case ID", "Status", "Risk Level", "Claim Value", "Compliance Flag"]]
+    for _, row in st.session_state.df_cases.iterrows():
+        case_headers.append([
+            row["Case_ID"], 
+            row["Status"], 
+            row["Risk_Level"], 
+            f"${row['Claim_Value']:,.2f}", 
+            row["Data_Quality_Flag"]
+        ])
+    
+    t_cases = Table(case_headers, colWidths=[80, 100, 80, 90, 150])
+    t_cases.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#000000")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#DDDDDD")),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+    ]))
+    story.append(t_cases)
+    
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+# ==========================================
+# SIDEBAR CONTROL & RBAC
 # ==========================================
 with st.sidebar:
     st.header("Governance & Data Controls")
@@ -192,7 +293,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.markdown(f"**Active Authority:** {role}")
+    st.markdown(f"Active Authority: {role}")
 
 # ==========================================
 # MAIN DASHBOARD HEADER
@@ -200,9 +301,34 @@ with st.sidebar:
 st.title("RCM Compliance & Work-Queue Intelligence Engine")
 st.caption("Enterprise Portfolio Artifact: RBAC, SQLite Persistence, Webhook Alerting, and Historical Audit Search.")
 
+# ==========================================
+# REVIEW & ATTESTATION GUIDE (TOP SECTION)
+# ==========================================
+with st.expander("Review & Attestation Standard Operating Guide", expanded=True):
+    st.write("Compliance Review & Attestation Protocol")
+    st.write("This intelligence engine provides real-time auditability and risk governance for Revenue Cycle Management (RCM) prior authorization queues and claims data quality.")
+    
+    st.write("1. Data Quality Exception Categories")
+    st.write("Missing Resolution Date: Prior authorization case closed without timestamped clinical resolution.")
+    st.write("Missing Closure Evidence: Lack of attached payer authorization notice or determination letter.")
+    st.write("Missing Owner: Case assigned to an unallocated or terminated user ID in the EHR/RCM workflow.")
+    st.write("Missing Human Review Evidence: High-dollar claim ($20,000+) processed via auto-adjudication without required compliance oversight.")
+    st.write("Pass: Clean record meeting all corporate compliance criteria.")
+
+    st.write("2. Standard Operating Procedures (SOP)")
+    st.write("1. Filter Active Queue: Identify cases tagged with Critical or High financial exposure.")
+    st.write("2. Inspect & Annotate: Select specific Case IDs in the Interactive Inspector to review details and log specific clinical annotations into SQLite.")
+    st.write("3. Remediate Exceptions: Use the Bulk Remediation Hub or Single Sign-Off Panel to commit official compliance notes and update data flags to Pass.")
+    st.write("4. Traceability: Verify sign-offs in the persistent SQLite Historical Audit Trail.")
+    st.write("5. Executive Reporting: Dispatch real-time webhooks or export PDF audit certificates for governance reporting.")
+
+st.markdown("---")
+
 df = st.session_state.df_cases
 
-# 1. Financial Exposure & Executive Metrics
+# ==========================================
+# FINANCIAL EXPOSURE METRICS
+# ==========================================
 total_portfolio_val = df["Claim_Value"].sum()
 revenue_at_risk = df[df["Data_Quality_Flag"] != "Pass"]["Claim_Value"].sum()
 critical_exposure = df[df["Risk_Level"] == "Critical"]["Claim_Value"].sum()
@@ -219,7 +345,7 @@ with c3:
 with c4:
     st.markdown(f'<div class="metric-card"><div class="metric-title">ACTIVE EXCEPTION FLAGS</div><div class="metric-value">{active_flags}</div></div>', unsafe_allow_html=True)
 
-# 2. Executive Portfolio Snapshot
+# Executive Portfolio Snapshot
 passing_cases = len(df[df["Data_Quality_Flag"] == "Pass"])
 total_cases = len(df)
 compliance_index = int((passing_cases / total_cases) * 100) if total_cases > 0 else 0
@@ -236,7 +362,9 @@ with s3:
 
 st.markdown("---")
 
-# 3. Active Work Queue & Filters
+# ==========================================
+# WORK QUEUE & DYNAMIC FILTER PANEL
+# ==========================================
 st.subheader("Active Work Queue & Data Quality Exceptions")
 
 f_col1, f_col2 = st.columns(2)
@@ -248,21 +376,28 @@ with f_col2:
 filtered_df = df[(df["Risk_Level"].isin(selected_risk)) & (df["Data_Quality_Flag"].isin(selected_flag))]
 st.dataframe(filtered_df, use_container_width=True)
 
-# Plotly Charts using #FF8200
-import plotly.express as px
 ch1, ch2 = st.columns(2)
 with ch1:
-    fig_status = px.bar(filtered_df, x="Status", title="Status Distribution (Filtered Cases)", color_discrete_sequence=["#FF8200"])
+    fig_status = px.bar(
+        filtered_df, x="Status", title="Status Distribution (Filtered Cases)",
+        color_discrete_sequence=["#FF8200"]
+    )
     fig_status.update_layout(paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font_color="#000000", margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig_status, use_container_width=True)
+
 with ch2:
-    fig_aging = px.bar(filtered_df, x="Case_ID", y="Days_Pending", title="Aging Breakdown (Filtered Cases)", color_discrete_sequence=["#FF8200"])
+    fig_aging = px.bar(
+        filtered_df, x="Case_ID", y="Days_Pending", title="Aging Breakdown (Filtered Cases)",
+        color_discrete_sequence=["#FF8200"]
+    )
     fig_aging.update_layout(paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font_color="#000000", margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig_aging, use_container_width=True)
 
 st.markdown("---")
 
-# 4. Interactive Case Inspector & Notes Logging
+# ==========================================
+# INTERACTIVE CASE DETAIL INSPECTOR
+# ==========================================
 st.subheader("Interactive Case Detail Inspector & Annotation Log")
 selected_case_id = st.selectbox("Select Case ID to Review", options=df["Case_ID"].tolist())
 case_row = df[df["Case_ID"] == selected_case_id].iloc[0]
@@ -277,7 +412,7 @@ with ic3:
 with ic4:
     st.markdown(f'<div class="metric-card"><div class="metric-title">CLAIM VALUE</div><div class="metric-value">${case_row["Claim_Value"]:,.2f}</div></div>', unsafe_allow_html=True)
 
-st.info(f"Data Quality Flag Status for {selected_case_id}: **{case_row['Data_Quality_Flag']}**")
+st.info(f"Data Quality Flag Status for {selected_case_id}: {case_row['Data_Quality_Flag']}")
 
 n_col1, n_col2 = st.columns(2)
 with n_col1:
@@ -304,8 +439,10 @@ with n_col2:
 
 st.markdown("---")
 
-# 5. Add New Claim Form
-with st.expander("➕ Add New Case / Claim Entry to Queue"):
+# ==========================================
+# ADD NEW CLAIM FORM
+# ==========================================
+with st.expander("Add New Case / Claim Entry to Queue"):
     with st.form("add_case_form"):
         fc1, fc2, fc3 = st.columns(3)
         with fc1:
@@ -327,43 +464,50 @@ with st.expander("➕ Add New Case / Claim Entry to Queue"):
 
 st.markdown("---")
 
-# 6. Bulk Remediation Hub
+# ==========================================
+# BULK WORK-QUEUE REMEDIATION
+# ==========================================
 st.subheader("Bulk Remediation Hub")
 open_cases = df[df["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist()
+
 if open_cases:
     selected_bulk_cases = st.multiselect("Select Case IDs for Bulk Audit Sign-Off", options=open_cases)
-    bulk_note = st.text_input("Enter Bulk Remediation Note (Applied to ALL selected cases)", placeholder="e.g., Verified clearinghouse records and updated documentation across batch.")
+    bulk_note = st.text_area("Enter Bulk Remediation Note (Applied to ALL selected cases)", placeholder="e.g., Verified clearinghouse records and updated documentation across batch.")
     
     if st.button("Execute Bulk Remediation & Commit to SQLite"):
         if selected_bulk_cases and bulk_note:
             conn = sqlite3.connect("rcm_audit_log.db")
             c = conn.cursor()
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
             for cid in selected_bulk_cases:
                 st.session_state.df_cases.loc[st.session_state.df_cases["Case_ID"] == cid, "Data_Quality_Flag"] = "Pass"
                 c.execute("INSERT INTO audit_logs (timestamp, case_id, exception, auditor, notes) VALUES (?, ?, ?, ?, ?)",
                           (timestamp, cid, "Pass", user_id, bulk_note))
+            
             conn.commit()
             conn.close()
             st.success(f"Successfully executed bulk remediation for {len(selected_bulk_cases)} cases.")
             st.rerun()
         else:
-            st.warning("Please select cases and enter a note.")
+            st.warning("Please select at least one case and enter a remediation note.")
 else:
-    st.info("No options to select (All active cases are marked as Pass).")
+    st.info("No active open exceptions available for bulk remediation. All cases compliant.")
 
 st.markdown("---")
 
-# 7. Single Case SQLite Sign-Off
+# ==========================================
+# PERSISTENT SINGLE SIGN-OFF PANEL
+# ==========================================
 st.subheader("Persistent SQLite Audit & Remediation Logbook & Live State Update")
 rem_case_id = st.selectbox("Select Case ID for Persistent SQLite Audit Sign-Off", options=df["Case_ID"].tolist(), key="single_signoff_select")
 target_row = df[df["Case_ID"] == rem_case_id].iloc[0]
-st.write(f"Target Case Exception: **{target_row['Data_Quality_Flag']}**")
+st.write(f"Target Case Exception: {target_row['Data_Quality_Flag']}")
 
 single_note = st.text_input("Enter Official Audit Remediation Note", placeholder="e.g., Verified missing documentation and closed loop.", key="single_note_input")
 auditor_input = st.text_input("Compliance Auditor / Reviewer Name", value=user_id, key="auditor_name_input")
 
-if st.button("Commit Remediation to Database & Update Queue State to 'Pass'"):
+if st.button("Commit Remediation to Database & Update Queue State to Pass"):
     if single_note:
         st.session_state.df_cases.loc[st.session_state.df_cases["Case_ID"] == rem_case_id, "Data_Quality_Flag"] = "Pass"
         conn = sqlite3.connect("rcm_audit_log.db")
@@ -380,23 +524,27 @@ if st.button("Commit Remediation to Database & Update Queue State to 'Pass'"):
 
 st.markdown("---")
 
-# 8. Historical Audit Search
+# ==========================================
+# PERSISTENT AUDIT SEARCH PANEL
+# ==========================================
 st.subheader("Historical Audit Search & Traceability Panel")
 conn = sqlite3.connect("rcm_audit_log.db")
-audit_logs_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC", conn)
+audit_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC", conn)
 conn.close()
 
-search_query = st.text_input("Search Audit History (Case ID or Auditor)")
-if search_query:
-    audit_logs_df = audit_logs_df[audit_logs_df["case_id"].str.contains(search_query, case=False, na=False) |
-                                  audit_logs_df["auditor"].str.contains(search_query, case=False, na=False)]
+search_term = st.text_input("Search Audit History (Case ID or Auditor)")
+if search_term:
+    audit_df = audit_df[audit_df["case_id"].str.contains(search_term, case=False, na=False) | 
+                        audit_df["auditor"].str.contains(search_term, case=False, na=False)]
 
 st.write("Official SQLite Audit Trail Records")
-st.dataframe(audit_logs_df, use_container_width=True)
+st.dataframe(audit_df, use_container_width=True)
 
 st.markdown("---")
 
-# 9. Automated Alerts & Webhooks
+# ==========================================
+# AUTOMATED ALERTS & WEBHOOK DISPATCHER
+# ==========================================
 st.subheader("Automated Compliance Alert & Webhook Dispatcher")
 webhook_url = st.text_input("Webhook Endpoint URL (Slack / Teams / Custom)", value="https://httpbin.org/post")
 email_recipient = st.text_input("Compliance Officer Email", value="koripickle1101@gmail.com")
@@ -425,8 +573,10 @@ with w_col2:
 
 st.markdown("---")
 
-# 10. Clean White Executive Exports
-st.subheader("Executive Report Exports")
+# ==========================================
+# EXECUTIVE REPORT EXPORTS & PDF
+# ==========================================
+st.subheader("Automated Compliance Scoring & Executive PDF Export")
 
 summary_text = f"""==================================================
 RCM COMPLIANCE INTELLIGENCE ENGINE - EXECUTIVE REPORT
@@ -442,34 +592,36 @@ Data Quality Exceptions: {active_flags} Active Compliance Flags
 Calculated Compliance Index: {compliance_index}%
 =================================================="""
 
-d_col1, d_col2 = st.columns(2)
-with d_col1:
+score_col, pdf_col = st.columns(2)
+
+with score_col:
+    st.markdown(f'<div class="metric-card"><div class="metric-title">CALCULATED COMPLIANCE INDEX</div><div class="metric-value">{compliance_index}%</div></div>', unsafe_allow_html=True)
+    if compliance_index == 100:
+        st.success("Work queue is fully compliant with internal data standards.")
+    else:
+        st.warning("Immediate remediation required to clear high-risk compliance flags.")
+    
     st.download_button(
         label="Download Executive Summary (.txt)",
         data=summary_text,
         file_name="rcm_executive_summary.txt",
         mime="text/plain"
     )
-with d_col2:
+
+with pdf_col:
+    st.write("Generate a formal, print-ready PDF Compliance Certificate complete with executive financial metrics and auditor sign-off block.")
+    
     if REPORTLAB_AVAILABLE:
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor("#FF8200"))
-        body_style = ParagraphStyle('BodyStyle', parent=styles['Normal'], fontSize=10, textColor=colors.black)
-        story = [
-            Paragraph("RCM COMPLIANCE AUDIT CERTIFICATE", title_style),
-            HRFlowable(width="100%", thickness=2, color=colors.HexColor("#FF8200"), spaceAfter=15),
-            Paragraph(f"<b>Timestamp:</b> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}<br/><b>Auditor:</b> {user_id}<br/><b>Compliance Index:</b> {compliance_index}%", body_style),
-            Spacer(1, 15)
-        ]
-        doc.build(story)
-        buffer.seek(0)
+        pdf_data = generate_pdf_report(compliance_index, total_portfolio_val, revenue_at_risk, user_id)
+        
         st.download_button(
             label="Download Official PDF Audit Certificate",
-            data=buffer,
-            file_name="rcm_audit_certificate.pdf",
+            data=pdf_data,
+            file_name=f"RCM_Compliance_Certificate_{datetime.date.today()}.pdf",
             mime="application/pdf"
         )
+    else:
+        st.error("ReportLab library is not installed. Please add reportlab to requirements.txt.")
 
 st.caption("CREATED BY KORI PICKLE | BSHA Healthcare Operations & Compliance Engine")
+
