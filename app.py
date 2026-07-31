@@ -31,54 +31,102 @@ st.markdown(
     "Educational Portfolio Artifact: No-PHI administrative workflow and data quality simulation."
 )
 
-@st.cache_data
-def load_data():
-    data = {
-        "Case_ID": ["PAUTH-046", "PAUTH-047", "PAUTH-048", "PAUTH-049", "PAUTH-050"],
-        "Status": ["Approved", "Closed", "Escalated", "Pending Review", "Appeal Readiness"],
-        "Risk_Level": ["Moderate", "High", "Routine", "Critical", "Critical"],
-        "Days_Pending": [4, 9, 2, 6, 10],
-        "Data_Quality_Flag": [
-            "Missing resolution date",
-            "Missing closure evidence",
-            "Missing owner",
-            "Missing human review evidence",
-            "Pass",
-        ],
-    }
-    return pd.DataFrame(data)
+tab1, tab2 = st.tabs(["Dashboard & Inspector", "Review & Attestation Guide"])
 
-df = load_data()
+with tab1:
+    @st.cache_data
+    def load_default_data():
+        data = {
+            "Case_ID": ["PAUTH-046", "PAUTH-047", "PAUTH-048", "PAUTH-049", "PAUTH-050"],
+            "Status": ["Approved", "Closed", "Escalated", "Pending Review", "Appeal Readiness"],
+            "Risk_Level": ["Moderate", "High", "Routine", "Critical", "Critical"],
+            "Days_Pending": [4, 9, 2, 6, 10],
+            "Data_Quality_Flag": [
+                "Missing resolution date",
+                "Missing closure evidence",
+                "Missing owner",
+                "Missing human review evidence",
+                "Pass",
+            ],
+        }
+        return pd.DataFrame(data)
 
-st.sidebar.header("Queue Filters")
-selected_risk = st.sidebar.selectbox(
-    "Filter by Risk Level", ["All", "Routine", "Moderate", "High", "Critical"]
-)
+    st.sidebar.header("Data & Queue Controls")
+    uploaded_file = st.sidebar.file_uploader("Upload Custom Fictional CSV Dataset", type=["csv"])
 
-if selected_risk != "All":
-    df_filtered = df[df["Risk_Level"] == selected_risk]
-else:
-    df_filtered = df
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+    else:
+        df = load_default_data()
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Filtered Cases", len(df_filtered))
-col2.metric("Critical Risk Items", len(df_filtered[df_filtered["Risk_Level"] == "Critical"]))
-col3.metric("Open High/Critical", len(df_filtered[df_filtered["Risk_Level"].isin(["High", "Critical"]) & (df_filtered["Status"] != "Closed")]))
-col4.metric("Data Quality Exceptions", len(df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]))
+    if "Risk_Level" in df.columns:
+        risk_options = ["All"] + list(df["Risk_Level"].unique())
+        selected_risk = st.sidebar.selectbox("Filter by Risk Level", risk_options)
 
-st.subheader("Active Work Queue & Data Quality Exceptions")
-st.dataframe(df_filtered, use_container_width=True)
+        if selected_risk != "All":
+            df_filtered = df[df["Risk_Level"] == selected_risk]
+        else:
+            df_filtered = df
+    else:
+        df_filtered = df
 
-st.subheader("Interactive Case Detail Inspector")
-selected_case = st.selectbox("Select Case ID to Review", df["Case_ID"].tolist())
-case_details = df[df["Case_ID"] == selected_case].iloc[0]
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Filtered Cases", len(df_filtered))
+    if "Risk_Level" in df_filtered.columns:
+        col2.metric("Critical Risk Items", len(df_filtered[df_filtered["Risk_Level"] == "Critical"]))
+        col3.metric("Open High/Critical", len(df_filtered[df_filtered["Risk_Level"].isin(["High", "Critical"]) & (df_filtered["Status"] != "Closed")]))
+    else:
+        col2.metric("Critical Risk Items", 0)
+        col3.metric("Open High/Critical", 0)
+        
+    if "Data_Quality_Flag" in df_filtered.columns:
+        col4.metric("Data Quality Exceptions", len(df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]))
+    else:
+        col4.metric("Data Quality Exceptions", 0)
 
-col_a, col_b, col_c = st.columns(3)
-col_a.metric("Current Status", case_details["Status"])
-col_b.metric("Risk Level", case_details["Risk_Level"])
-col_c.metric("Days Pending", case_details["Days_Pending"])
+    st.subheader("Active Work Queue & Data Quality Exceptions")
+    st.dataframe(df_filtered, use_container_width=True)
 
-st.markdown(f"**Data Quality Flag Status for {selected_case}:** `{case_details['Data_Quality_Flag']}`")
+    if not df_filtered.empty and "Status" in df_filtered.columns:
+        st.subheader("Dashboard Visual Analytics")
+        chart_col1, chart_col2 = st.columns(2)
+        
+        with chart_col1:
+            st.markdown("**Status Breakdown**")
+            status_counts = df_filtered["Status"].value_counts()
+            st.bar_chart(status_counts)
+            
+        with chart_col2:
+            if "Days_Pending" in df_filtered.columns:
+                st.markdown("**Aging Breakdown (Days Pending)**")
+                st.bar_chart(df_filtered.set_index("Case_ID")["Days_Pending"])
+
+    if not df.empty and "Case_ID" in df.columns:
+        st.subheader("Interactive Case Detail Inspector")
+        selected_case = st.selectbox("Select Case ID to Review", df["Case_ID"].tolist())
+        case_row = df[df["Case_ID"] == selected_case]
+        if not case_row.empty:
+            case_details = case_row.iloc[0]
+            col_a, col_b, col_c = st.columns(3)
+            col_a.metric("Current Status", case_details.get("Status", "N/A"))
+            col_b.metric("Risk Level", case_details.get("Risk_Level", "N/A"))
+            col_c.metric("Days Pending", case_details.get("Days_Pending", "N/A"))
+
+            if "Data_Quality_Flag" in case_details:
+                st.markdown(f"**Data Quality Flag Status for {selected_case}:** `{case_details['Data_Quality_Flag']}`")
+
+with tab2:
+    st.subheader("PA-004 Review Guide & Attestation Framework")
+    st.markdown("### Scope Definitions")
+    st.write("This application serves as an educational simulation framework to evaluate administrative work-queue throughput, tracking logic, and data quality standards without exposing production or protected information.")
+    
+    st.markdown("### Personal Boundary Statements")
+    st.info("Strict No-PHI Boundary: This engine utilizes entirely fictional, synthesized dataset structures. It is intentionally decoupled from live clinical workflows or adjudication engines.")
+
+    st.markdown("### Attestation Checklist")
+    st.checkbox("Verified structure contains zero Protected Health Information (PHI).")
+    st.checkbox("Validated exception flagging logic against administrative standard rules.")
+    st.checkbox("Confirmed Vols brand identity requirements and layout responsiveness.")
 
 st.info(
     "Boundary Notice: This tool is built strictly for educational workflow simulation and does not contain PHI or make clinical/payer determinations."
