@@ -47,10 +47,13 @@ st.markdown("""
     div[data-baseweb="input"] > div,
     div[data-baseweb="base-input"],
     div[data-baseweb="textarea"] > div,
-    div[data-baseweb="select"] > div {
+    div[data-baseweb="select"] > div,
+    textarea, input {
         background-color: #FFFFFF !important;
         border: 2px solid #FF8200 !important;
         border-radius: 6px !important;
+        color: #111111 !important;
+        -webkit-text-fill-color: #111111 !important;
     }
 
     div[data-baseweb="input"] input,
@@ -60,6 +63,7 @@ st.markdown("""
         color: #111111 !important;
         -webkit-text-fill-color: #111111 !important;
         font-weight: 600 !important;
+        background-color: #FFFFFF !important;
     }
 
     input::placeholder, textarea::placeholder {
