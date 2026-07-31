@@ -244,3 +244,16 @@ st.download_button(
     mime="text/csv",
 )
 
+st.markdown("---")
+st.subheader("Aging Breakdown Summary")
+
+aging_summary = df_filtered[["Case_ID", "Days_Pending", "Risk_Level"]].sort_values(by="Days_Pending", ascending=False).reset_index(drop=True)
+
+st.dataframe(aging_summary, use_container_width=True)
+
+st.download_button(
+    label="⏱️ Download Aging Breakdown CSV",
+    data=aging_summary.to_csv(index=False).encode("utf-8"),
+    file_name="aging_breakdown_summary.csv",
+    mime="text/csv",
+)
