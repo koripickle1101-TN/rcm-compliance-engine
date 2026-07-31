@@ -228,3 +228,19 @@ st.download_button(
     file_name="rcm_filtered_export.csv",
     mime="text/csv",
 )
+
+st.markdown("---")
+st.subheader("Risk Level Breakdown & Audit Summary")
+
+risk_summary = df_filtered["Risk_Level"].value_counts().reset_index()
+risk_summary.columns = ["Risk_Level", "Count"]
+
+st.dataframe(risk_summary, use_container_width=True)
+
+st.download_button(
+    label="📊 Download Risk Audit Summary",
+    data=risk_summary.to_csv(index=False).encode("utf-8"),
+    file_name="risk_audit_summary.csv",
+    mime="text/csv",
+)
+
