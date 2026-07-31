@@ -33,7 +33,7 @@ st.markdown(
     }}
 
     [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] span {{
-        color: {BLACK} !important;
+        color: {VOLS_ORANGE} !important;
         font-family: 'Inter', sans-serif !important;
     }}
 
@@ -42,6 +42,24 @@ st.markdown(
         font-weight: 700 !important;
         color: {BLACK} !important;
         letter-spacing: -0.01em;
+    }}
+
+    /* Streamlit Native Metric Cards & Labels */
+    [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p {{
+        color: {VOLS_ORANGE} !important;
+        font-weight: 700 !important;
+        font-size: 0.9rem !important;
+    }}
+    
+    [data-testid="stMetricValue"], [data-testid="stMetricValue"] div {{
+        color: {BLACK} !important;
+        font-weight: 800 !important;
+    }}
+
+    /* Tiny Font, Captions, Small Elements */
+    small, .stCaption, span.small, p.small, label {{
+        color: {VOLS_ORANGE} !important;
+        font-weight: 600 !important;
     }}
 
     /* Streamlit Tabs Styling */
@@ -59,7 +77,7 @@ st.markdown(
         background-color: {VOLS_ORANGE} !important;
     }}
 
-    /* Override standard Streamlit green code badges */
+    /* Code & Tag Badges */
     code, .stMarkdown code, span[data-baseweb="tag"] {{
         color: {VOLS_ORANGE} !important;
         background-color: {BLACK} !important;
@@ -79,8 +97,8 @@ st.markdown(
     }}
 
     .stTextInput label, .stSelectbox label, .stTextArea label, .stCheckbox label {{
-        color: {BLACK} !important;
-        font-weight: 600 !important;
+        color: {VOLS_ORANGE} !important;
+        font-weight: 700 !important;
         font-family: 'Inter', sans-serif !important;
     }}
 
@@ -89,13 +107,21 @@ st.markdown(
         box-shadow: 0 0 0 1px {VOLS_ORANGE} !important;
     }}
 
+    /* Metric Cards */
     .metric-card {{
         background-color: {WHITE};
-        padding: 24px;
+        padding: 20px;
         border-radius: 4px;
         border: 1px solid {VOLS_ORANGE};
         border-left: 6px solid {VOLS_ORANGE};
         box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    }}
+
+    .metric-card small {{
+        color: {VOLS_ORANGE} !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }}
 
     .sidebar-session-box {{
@@ -130,25 +156,6 @@ st.markdown(
         text-align: center;
         background-color: {WHITE};
         font-family: 'Inter', sans-serif !important;
-    }}
-
-    .footer-name {{
-        font-family: 'Inter', sans-serif !important;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: {BLACK};
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        margin-bottom: 12px;
-    }}
-
-    .cursive-signature {{
-        font-family: 'Great Vibes', cursive;
-        font-size: 2.5rem;
-        color: {VOLS_ORANGE};
-        transform: rotate(-3deg);
-        margin: 10px 0 20px 0;
-        text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.1);
     }}
     </style>
 """,
@@ -287,7 +294,7 @@ with tab1:
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<p style='font-size: 1.05rem; color: #000000; margin-top: 8px;"
+        f"<p style='font-size: 1.05rem; color: {BLACK}; margin-top: 8px;"
         " margin-bottom: 30px;'>Enterprise Portfolio Artifact: RBAC, SQLite"
         " Persistence, Webhook Alerting, and Historical Audit Search.</p>",
         unsafe_allow_html=True,
@@ -329,7 +336,6 @@ with tab1:
 
     st.markdown("### Active Work Queue & Data Quality Exceptions")
     
-    # Format currency display for data table rendering
     df_display = df.copy()
     df_display["Claim_Value"] = df_display["Claim_Value"].apply(
         lambda x: f"${x:,.2f}"
@@ -339,11 +345,11 @@ with tab1:
     st.markdown("### Dashboard Visual Analytics")
     chart_col1, chart_col2 = st.columns(2)
     with chart_col1:
-        st.markdown("Status Distribution")
+        st.markdown("<small>Status Distribution</small>", unsafe_allow_html=True)
         status_counts = df["Status"].value_counts()
         st.bar_chart(status_counts, color=VOLS_ORANGE)
     with chart_col2:
-        st.markdown("Aging Breakdown (Days Pending)")
+        st.markdown("<small>Aging Breakdown (Days Pending)</small>", unsafe_allow_html=True)
         st.bar_chart(df.set_index("Case_ID")["Days_Pending"], color=VOLS_ORANGE)
 
     st.markdown("---")
@@ -357,34 +363,26 @@ with tab1:
     insp_col1, insp_col2, insp_col3, insp_col4 = st.columns(4)
     with insp_col1:
         st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>CURRENT"
-            f" STATUS</small><h3 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{inspect_row['Status']}</h3></div>",
+            f"<div class='metric-card'><small>CURRENT STATUS</small>"
+            f"<h3 style='color:{BLACK}!important; margin:4px 0 0 0;'>{inspect_row['Status']}</h3></div>",
             unsafe_allow_html=True,
         )
     with insp_col2:
         st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>RISK"
-            f" LEVEL</small><h3 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{inspect_row['Risk_Level']}</h3></div>",
+            f"<div class='metric-card'><small>RISK LEVEL</small>"
+            f"<h3 style='color:{BLACK}!important; margin:4px 0 0 0;'>{inspect_row['Risk_Level']}</h3></div>",
             unsafe_allow_html=True,
         )
     with insp_col3:
         st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>DAYS"
-            f" PENDING</small><h3 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{inspect_row['Days_Pending']}</h3></div>",
+            f"<div class='metric-card'><small>DAYS PENDING</small>"
+            f"<h3 style='color:{BLACK}!important; margin:4px 0 0 0;'>{inspect_row['Days_Pending']}</h3></div>",
             unsafe_allow_html=True,
         )
     with insp_col4:
         st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>CLAIM"
-            f" VALUE</small><h3 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>${inspect_row['Claim_Value']:,.2f}</h3></div>",
+            f"<div class='metric-card'><small>CLAIM VALUE</small>"
+            f"<h3 style='color:{BLACK}!important; margin:4px 0 0 0;'>${inspect_row['Claim_Value']:,.2f}</h3></div>",
             unsafe_allow_html=True,
         )
 
@@ -406,13 +404,9 @@ with tab1:
     col_qh1, col_qh2 = st.columns(2)
     with col_qh1:
         st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>OVERALL QUEUE"
-            f" COMPLIANCE HEALTH</small><h2"
-            f" style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{compliance_index}%</h2><p"
-            f" style='color:{VOLS_ORANGE}; margin:5px 0 0 0; font-weight:600;'>🟠"
-            f" {passed_count} of {len(df)} passing</p></div>",
+            f"<div class='metric-card'><small>OVERALL QUEUE COMPLIANCE HEALTH</small>"
+            f"<h2 style='color:{BLACK}!important; margin:4px 0 0 0;'>{compliance_index}%</h2>"
+            f"<p style='color:{VOLS_ORANGE}; margin:5px 0 0 0; font-weight:600; font-size:0.85rem;'>🟠 {passed_count} of {len(df)} passing</p></div>",
             unsafe_allow_html=True,
         )
     with col_qh2:
@@ -473,18 +467,14 @@ with tab1:
     qmetric_col1, qmetric_col2 = st.columns(2)
     with qmetric_col1:
         st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>TOTAL CUMULATIVE DAYS"
-            f" PENDING</small><h2 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{tot_days} Days</h2></div>",
+            f"<div class='metric-card'><small>TOTAL CUMULATIVE DAYS PENDING</small>"
+            f"<h2 style='color:{BLACK}!important; margin:4px 0 0 0;'>{tot_days} Days</h2></div>",
             unsafe_allow_html=True,
         )
     with qmetric_col2:
         st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>AVERAGE DAYS PENDING"
-            f" PER CASE</small><h2 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{avg_days} Days</h2></div>",
+            f"<div class='metric-card'><small>AVERAGE DAYS PENDING PER CASE</small>"
+            f"<h2 style='color:{BLACK}!important; margin:4px 0 0 0;'>{avg_days} Days</h2></div>",
             unsafe_allow_html=True,
         )
 
@@ -748,7 +738,9 @@ Calculated Compliance Index: {compliance_index}%
     with score_col1:
         grade_text = "Grade: A (Fully Compliant)" if compliance_index >= 80 else "Grade: C (Action Required)"
         st.markdown(
-            f"<div class='metric-card'><small style='color:{BLACK}; font-weight:700;'>CALCULATED COMPLIANCE INDEX</small><h2 style='color:{VOLS_ORANGE}!important; margin:0;'>{compliance_index}%</h2><p style='color:{BLACK}; margin:5px 0 0 0; font-weight:600;'>{grade_text}</p></div>",
+            f"<div class='metric-card'><small>CALCULATED COMPLIANCE INDEX</small>"
+            f"<h2 style='color:{BLACK}!important; margin:4px 0 0 0;'>{compliance_index}%</h2>"
+            f"<p style='color:{BLACK}; margin:5px 0 0 0; font-weight:600;'>{grade_text}</p></div>",
             unsafe_allow_html=True
         )
 
@@ -816,14 +808,14 @@ with tab3:
         st.markdown(
             f"""
             <div class="metric-card" style="margin-bottom: 15px;">
-                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Resolution Date</h4>
+                <h4 style="color:{BLACK}!important; margin:0 0 8px 0;">Missing Resolution Date</h4>
                 <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Case resolution status is marked closed or approved without a validated timestamp.</p>
-                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Cross-reference clearinghouse logs and record the exact final adjudication date.</p>
+                <p style="margin:0; font-size:0.85rem; color:{VOLS_ORANGE};"><strong>Remediation Protocol:</strong> Cross-reference clearinghouse logs and record the exact final adjudication date.</p>
             </div>
             <div class="metric-card" style="margin-bottom: 15px;">
-                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Closure Evidence</h4>
+                <h4 style="color:{BLACK}!important; margin:0 0 8px 0;">Missing Closure Evidence</h4>
                 <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Supporting documentation, payor EOB, or written authorization is absent from the file.</p>
-                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Attach proof of payment or final appeal decision before committing state change to 'Pass'.</p>
+                <p style="margin:0; font-size:0.85rem; color:{VOLS_ORANGE};"><strong>Remediation Protocol:</strong> Attach proof of payment or final appeal decision before committing state change to 'Pass'.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -833,14 +825,14 @@ with tab3:
         st.markdown(
             f"""
             <div class="metric-card" style="margin-bottom: 15px;">
-                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Owner</h4>
+                <h4 style="color:{BLACK}!important; margin:0 0 8px 0;">Missing Owner</h4>
                 <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> No primary analyst or compliance specialist is assigned accountability for the work item.</p>
-                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Assign an active staff member in the work-queue manager.</p>
+                <p style="margin:0; font-size:0.85rem; color:{VOLS_ORANGE};"><strong>Remediation Protocol:</strong> Assign an active staff member in the work-queue manager.</p>
             </div>
             <div class="metric-card" style="margin-bottom: 15px;">
-                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Human Review Evidence</h4>
+                <h4 style="color:{BLACK}!important; margin:0 0 8px 0;">Missing Human Review Evidence</h4>
                 <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Automated claim/authorization decision lacks required secondary sign-off.</p>
-                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Require Senior Auditor or Compliance Manager verification.</p>
+                <p style="margin:0; font-size:0.85rem; color:{VOLS_ORANGE};"><strong>Remediation Protocol:</strong> Require Senior Auditor or Compliance Manager verification.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -859,42 +851,4 @@ st.markdown(
     "<h4 style='text-align: center;'>CREATED BY KORI PICKLE</h4>",
     unsafe_allow_html=True,
 )
-
-st.divider()
-st.subheader("🚀 Realistic Next Upgrades to Implement")
-st.write(
-    "Here are four high-impact, realistic features that will take this application to the next level without cluttering the UI:"
-)
-
-col_u1, col_u2 = st.columns(2)
-
-with col_u1:
-    st.markdown(
-        f"""
-        <div class="metric-card" style="margin-bottom: 15px;">
-            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">1. Financial Exposure & Revenue at Risk Metrics (COMPLETED ✅)</h4>
-            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> Displays total portfolio value ($70,000.00) alongside uncollected revenue at risk across active exception cases.</p>
-        </div>
-        <div class="metric-card" style="margin-bottom: 15px;">
-            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">2. Dynamic Chart Synchronization</h4>
-            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> Currently, filtering by case ID or status filters the data tables. Tying the search bar and filter selections directly to the Plotly visual analytics charts ensures that when a user filters for Critical cases, the Aging Breakdown and Status Distribution charts update dynamically in real time.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with col_u2:
-    st.markdown(
-        f"""
-        <div class="metric-card" style="margin-bottom: 15px;">
-            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">3. Bulk Work-Queue Remediation</h4>
-            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> In high-volume clearinghouse workflows, auditors often need to resolve repetitive flags at scale. Adding multi-select controls to assign an owner or update status across multiple selected Case IDs simultaneously mirrors real-world enterprise RCM operations.</p>
-        </div>
-        <div class="metric-card" style="margin-bottom: 15px;">
-            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">4. Styled PDF Audit Certificate Export</h4>
-            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> Upgrade the Executive Summary download button to generate a formatted PDF report using Python libraries like ReportLab or FPDF. Including styled headers, key metrics, and an official auditor sign-off block turns the export into a print-ready document for compliance committees.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
