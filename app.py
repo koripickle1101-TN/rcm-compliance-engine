@@ -398,3 +398,57 @@ if selected_case_to_remediate:
         st.success(f"Case {selected_case_to_remediate} successfully cleared! Remediation Logged: '{remediation_note}'")
         st.info("Note: Session-state tracking can persist this update across your workflow filters.")
 
+st.markdown("---")
+st.subheader("Persistent Audit & Remediation Logbook")
+
+# Initialize session state history log if it doesn't exist
+if "remediation_audit_trail" not in st.session_state:
+    st.session_state.remediation_audit_trail = []
+
+selected_case_persist = st.selectbox(
+    "Select Case ID for Persistent Audit Sign-Off",
+    options=df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist(),
+    key="persist_case_select"
+)
+
+if selected_case_persist:
+    current_flag_val = df_filtered.loc[df_filtered["Case_ID"] == selected_case_persist, "Data_Quality_Flag"].values[0]
+    st.write(f"**Target Case Exception:** `{current_flag_val}`")
+    
+    audit_note = st.text_input("Enter Official Audit Remediation Note", placeholder="e.g., Verified missing documentation and closed loop.", key="persist_note")
+    auditor_name = st.text_input("Compliance Auditor / Reviewer Name", placeholder="e.g., K. Pickle, BSHA Compliance", key="persist_auditor")
+    
+    if st.button("💾 Commit to Permanent Session Audit Log", key="commit_audit_btn"):
+        if audit_note and auditor_name:
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Append record to session log
+            st.session_state.remediation_audit_trail.append({
+                "Timestamp": timestamp,
+                "Case_ID": selected_case_persist,
+                "Exception": current_flag_val,
+                "Auditor": auditor_name,
+                "Note": audit_note
+            })
+            st.success(f"Audit record successfully committed for {selected_case_persist}!")
+        else:
+            st.warning("Please provide both an audit note and your reviewer name before committing.")
+
+# Display live persistent audit log table if entries exist
+if st.session_state.remediation_audit_trail:
+    st.markdown("### 📋 Live Session Audit Trail")
+    audit_df = pd.DataFrame(st.session_state.remediation_audit_trail)
+    st.dataframe(audit_df, use_container_width=True)
+    
+    # CSV Download for the audit trail
+    csv_audit = audit_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📥 Download Official Audit Log (.csv)",
+        data=csv_audit,
+        file_name="rcm_session_remediation_audit_log.csv",
+        mime="text/csv",
+        key="download_audit_log_btn"
+    )
+
+
