@@ -451,4 +451,32 @@ if st.session_state.remediation_audit_trail:
         key="download_audit_log_btn"
     )
 
+st.markdown("---")
+st.subheader("🏆 Automated Compliance Scoring & Executive Badge")
+
+# Calculate total cases vs critical/unresolved items
+total_cases_count = len(df_filtered)
+critical_cases_count = len(df_filtered[df_filtered["Risk_Level"] == "Critical"])
+unresolved_exceptions = len(df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"])
+
+# Simple scoring logic
+compliance_score = max(0, 100 - (critical_cases_count * 20) - (unresolved_exceptions * 10))
+
+# Determine badge grade and color
+if compliance_score >= 90:
+    grade, status_color = "Grade: A (Optimal Compliance)", "🟢"
+elif compliance_score >= 75:
+    grade, status_color = "Grade: B (Moderate Risk Control)", "🟡"
+else:
+    grade, status_color = "Grade: C (Action Required)", "🔴"
+
+col1, col2 = st.columns(2)
+with col1:
+    st.metric(label="Calculated Compliance Index", value=f"{compliance_score}%", delta=f"{status_color} {grade}")
+with col2:
+    st.write("**Executive Governance Status:**")
+    if compliance_score >= 75:
+        st.success("Queue meets baseline administrative quality thresholds for review.")
+    else:
+        st.warning("Immediate remediation required to clear high-risk compliance flags.")
 
