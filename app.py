@@ -258,6 +258,7 @@ data = {
         "Missing human review evidence",
         "Pass",
     ],
+    "Claim_Value": [8500.00, 12000.00, 4500.00, 25000.00, 20000.00],
 }
 df = pd.DataFrame(data)
 
@@ -268,6 +269,12 @@ conn.close()
 if not audit_history_df.empty:
     passed_cases = audit_history_df["case_id"].unique()
     df.loc[df["Case_ID"].isin(passed_cases), "Data_Quality_Flag"] = "Pass"
+
+# Calculate dynamic financial metrics
+total_financial_exposure = df["Claim_Value"].sum()
+revenue_at_risk = df[df["Data_Quality_Flag"] != "Pass"]["Claim_Value"].sum()
+critical_revenue_risk = df[df["Risk_Level"] == "Critical"]["Claim_Value"].sum()
+exceptions_count = len(df[df["Data_Quality_Flag"] != "Pass"])
 
 tab1, tab2, tab3 = st.tabs(
     ["Dashboard & Inspector", "Case Notes Stream", "Review & Attestation Guide"]
@@ -286,44 +293,48 @@ with tab1:
         unsafe_allow_html=True,
     )
 
+    st.subheader("Financial Exposure & Executive Metrics")
     col1, col2, col3, col4 = st.columns(4)
+
     with col1:
-        st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>TOTAL"
-            f" CASES</small><h2 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{len(df)}</h2></div>",
-            unsafe_allow_html=True,
+        st.metric(
+            label="Total Portfolio Value",
+            value=f"${total_financial_exposure:,.2f}",
+            help="Total claim value of all active cases in queue.",
         )
+
     with col2:
-        st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>CRITICAL"
-            f" RISKS</small><h2 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{len(df[df['Risk_Level'] == 'Critical'])}</h2></div>",
-            unsafe_allow_html=True,
+        st.metric(
+            label="Revenue at Risk (Exceptions)",
+            value=f"${revenue_at_risk:,.2f}",
+            delta=f"{exceptions_count} Open Flags",
+            delta_color="inverse",
+            help="Dollar value tied up in cases with un-remediated compliance flags.",
         )
+
     with col3:
-        st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>OPEN"
-            f" HIGH</small><h2 style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{len(df[df['Risk_Level'].isin(['High', 'Critical'])])}</h2></div>",
-            unsafe_allow_html=True,
+        st.metric(
+            label="Critical Financial Risk",
+            value=f"${critical_revenue_risk:,.2f}",
+            help="Total dollar value tied up in Critical risk level cases.",
         )
+
     with col4:
-        st.markdown(
-            f"<div class='metric-card'><small"
-            f" style='color:{BLACK}; font-weight:700;'>EXCEPTIONS</small><h2"
-            f" style='color:{VOLS_ORANGE}!important;"
-            f" margin:0;'>{len(df[df['Data_Quality_Flag'] != 'Pass'])}</h2></div>",
-            unsafe_allow_html=True,
+        st.metric(
+            label="Active Exception Flags",
+            value=exceptions_count,
         )
 
     st.markdown("---")
 
     st.markdown("### Active Work Queue & Data Quality Exceptions")
-    st.dataframe(df, use_container_width=True)
+    
+    # Format currency display for data table rendering
+    df_display = df.copy()
+    df_display["Claim_Value"] = df_display["Claim_Value"].apply(
+        lambda x: f"${x:,.2f}"
+    )
+    st.dataframe(df_display, use_container_width=True)
 
     st.markdown("### Dashboard Visual Analytics")
     chart_col1, chart_col2 = st.columns(2)
@@ -343,7 +354,7 @@ with tab1:
     )
     inspect_row = df.loc[df["Case_ID"] == selected_inspect_case].iloc[0]
 
-    insp_col1, insp_col2, insp_col3 = st.columns(3)
+    insp_col1, insp_col2, insp_col3, insp_col4 = st.columns(4)
     with insp_col1:
         st.markdown(
             f"<div class='metric-card'><small"
@@ -368,6 +379,14 @@ with tab1:
             f" margin:0;'>{inspect_row['Days_Pending']}</h3></div>",
             unsafe_allow_html=True,
         )
+    with insp_col4:
+        st.markdown(
+            f"<div class='metric-card'><small"
+            f" style='color:{BLACK}; font-weight:700;'>CLAIM"
+            f" VALUE</small><h3 style='color:{VOLS_ORANGE}!important;"
+            f" margin:0;'>${inspect_row['Claim_Value']:,.2f}</h3></div>",
+            unsafe_allow_html=True,
+        )
 
     st.markdown(
         f"Data Quality Flag Status for {selected_inspect_case}:"
@@ -379,7 +398,7 @@ with tab1:
     st.markdown("---")
 
     st.markdown("### Queue Health & Export Controls")
-    csv_data = df.to_csv(index=False).encode("utf-8")
+    csv_data = df_display.to_csv(index=False).encode("utf-8")
 
     passed_count = len(df[df["Data_Quality_Flag"] == "Pass"])
     compliance_index = int((passed_count / len(df)) * 100)
@@ -432,7 +451,7 @@ with tab1:
 
     st.markdown("### Aging Breakdown Summary")
     aging_df = (
-        df[["Case_ID", "Days_Pending", "Risk_Level"]]
+        df_display[["Case_ID", "Days_Pending", "Risk_Level", "Claim_Value"]]
         .sort_values(by="Days_Pending", ascending=False)
         .reset_index(drop=True)
     )
@@ -472,11 +491,17 @@ with tab1:
     st.markdown("### Compliance SLA Performance & Resolution Tracking")
     sla_df = (
         df.groupby("Status")
-        .agg(Total_Cases=("Case_ID", "count"), Avg_Days_Pending=("Days_Pending", "mean"))
+        .agg(
+            Total_Cases=("Case_ID", "count"),
+            Avg_Days_Pending=("Days_Pending", "mean"),
+            Total_Claim_Value=("Claim_Value", "sum")
+        )
         .reset_index()
     )
-    st.dataframe(sla_df, use_container_width=True)
-    sla_csv = sla_df.to_csv(index=False).encode("utf-8")
+    sla_df_display = sla_df.copy()
+    sla_df_display["Total_Claim_Value"] = sla_df_display["Total_Claim_Value"].apply(lambda x: f"${x:,.2f}")
+    st.dataframe(sla_df_display, use_container_width=True)
+    sla_csv = sla_df_display.to_csv(index=False).encode("utf-8")
     if st.download_button(
         "Download SLA Compliance Report",
         sla_csv,
@@ -493,12 +518,15 @@ with tab1:
         .groupby("Data_Quality_Flag")
         .agg(
             Affected_Cases=("Case_ID", "count"),
+            Total_Value_At_Risk=("Claim_Value", "sum"),
             Case_List=("Case_ID", lambda x: ", ".join(x)),
         )
         .reset_index()
     )
-    st.dataframe(dq_summary, use_container_width=True)
-    dq_csv = dq_summary.to_csv(index=False).encode("utf-8")
+    dq_summary_display = dq_summary.copy()
+    dq_summary_display["Total_Value_At_Risk"] = dq_summary_display["Total_Value_At_Risk"].apply(lambda x: f"${x:,.2f}")
+    st.dataframe(dq_summary_display, use_container_width=True)
+    dq_csv = dq_summary_display.to_csv(index=False).encode("utf-8")
     if st.download_button(
         "Download DQ Exception Audit Log",
         dq_csv,
@@ -516,8 +544,8 @@ with tab1:
         placeholder="Type a keyword or case ID above to instantly filter...",
     )
     if search_query:
-        filtered_search_df = df[
-            df.apply(
+        filtered_search_df = df_display[
+            df_display.apply(
                 lambda row: row.astype(str).str.contains(search_query, case=False).any(),
                 axis=1,
             )
@@ -529,7 +557,7 @@ with tab1:
     st.markdown("---")
 
     st.markdown("### Compliance Audit Export Hub & Full Snapshot")
-    full_snapshot_csv = df.to_csv(index=False).encode("utf-8")
+    full_snapshot_csv = df_display.to_csv(index=False).encode("utf-8")
     if st.download_button(
         "Download Complete Filtered Queue Snapshot (CSV)",
         full_snapshot_csv,
@@ -549,6 +577,9 @@ Generated Timestamp: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 Reviewer Authority: {current_user} ({user_role})
 --------------------------------------------------
 Scope Analyzed: {len(df)} Active Work-Queue Cases
+Total Portfolio Value: ${total_financial_exposure:,.2f}
+Revenue at Risk (Exceptions): ${revenue_at_risk:,.2f}
+Critical Financial Exposure: ${critical_revenue_risk:,.2f}
 Critical Risk Exposure: {len(df[df['Risk_Level'] == 'Critical'])} Cases Requiring Immediate Escalation
 Data Quality Exceptions: {len(df[df['Data_Quality_Flag'] != 'Pass'])} Active Compliance Flags
 Average Case Aging: {avg_days} Days Pending
@@ -556,7 +587,7 @@ Calculated Compliance Index: {compliance_index}%
 ==================================================
 """
     st.text_area(
-        "Copy Executive Summary Report", exec_summary_text.strip(), height=180
+        "Copy Executive Summary Report", exec_summary_text.strip(), height=200
     )
     if st.download_button(
         "Download Executive Summary (.txt)",
@@ -693,6 +724,8 @@ Calculated Compliance Index: {compliance_index}%
                     payload = {
                         "event": "RCM_COMPLIANCE_ALERT",
                         "total_cases": len(df),
+                        "total_portfolio_value": total_financial_exposure,
+                        "revenue_at_risk": revenue_at_risk,
                         "critical_risks": int(len(df[df["Risk_Level"] == "Critical"])),
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     }
@@ -839,8 +872,8 @@ with col_u1:
     st.markdown(
         f"""
         <div class="metric-card" style="margin-bottom: 15px;">
-            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">1. Financial Exposure & Revenue at Risk Metrics</h4>
-            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> Revenue Cycle Management revolves around financial impact. Adding a dollar amount column to your dataset (such as Claim Value or Dollars at Risk) allows you to display total financial exposure alongside case counts. Showing that two critical cases represent $45,000 in uncollected revenue bridges administrative compliance with executive financial strategy.</p>
+            <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">1. Financial Exposure & Revenue at Risk Metrics (COMPLETED ✅)</h4>
+            <p style="margin:0; font-size:0.9rem; color:rgb(85,85,85);"><strong>Impact:</strong> Displays total portfolio value ($70,000.00) alongside uncollected revenue at risk across active exception cases.</p>
         </div>
         <div class="metric-card" style="margin-bottom: 15px;">
             <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">2. Dynamic Chart Synchronization</h4>
