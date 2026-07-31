@@ -6,18 +6,18 @@ import datetime
 import requests
 import io
 
-# Optional ReportLab import for PDF generation
+# Safe ReportLab import
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
 # ==========================================
-# PAGE CONFIGURATION & VOLS COLOR SCHEME
+# PAGE CONFIG & STRICT TENNESSEE VOLS THEME (#FF8200)
 # ==========================================
 st.set_page_config(
     page_title="RCM Compliance Intelligence Engine",
@@ -26,7 +26,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling: White Background (#FFFFFF), Black Text (#000000), Vols Orange Accent (#FF8200)
+# Custom CSS for Pure White (#FFFFFF), Vols Orange (#FF8200), and Crisp Black (#000000)
 st.markdown("""
     <style>
         :root {
@@ -35,61 +35,74 @@ st.markdown("""
             --vols-white: #FFFFFF;
         }
         
-        /* Pure White Background for Main Body & App Area */
-        .stApp, .main, [data-testid="stAppViewContainer"] {
+        /* Pure White App Surface */
+        .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
             background-color: #FFFFFF !important;
             color: #000000 !important;
         }
         
-        /* Black Typography for Headers, Text, and Labels */
-        h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, div {
+        /* Black Typography */
+        h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown {
             color: #000000 !important;
         }
 
-        /* Input Boxes & Dropdowns: Orange Accent Styling */
+        /* Inputs & Selectboxes */
         div[data-baseweb="input"] > div, 
         div[data-baseweb="select"] > div,
         .stTextInput input, 
-        .stSelectbox div, 
-        .stMultiSelect div {
+        .stTextArea textarea {
             border: 2px solid #FF8200 !important;
             background-color: #FFFFFF !important;
             color: #000000 !important;
             border-radius: 6px !important;
         }
-        
-        /* Focus state for input boxes */
-        div[data-baseweb="input"]:focus-within,
-        div[data-baseweb="select"]:focus-within {
-            border-color: #000000 !important;
-            box-shadow: 0 0 0 1px #FF8200 !important;
+
+        /* Multiselect Tags */
+        span[data-baseweb="tag"] {
+            background-color: #FF8200 !important;
+            border: 1px solid #000000 !important;
+        }
+        span[data-baseweb="tag"] span {
+            color: #000000 !important;
+            font-weight: bold !important;
         }
 
-        /* High-Contrast Action Buttons with Vols Orange */
-        div.stButton > button:first-child {
+        /* Global Buttons & Download Buttons Fix */
+        div.stButton > button, 
+        div.stDownloadButton > button {
             background-color: #FF8200 !important;
             color: #000000 !important;
             font-weight: bold !important;
             border-radius: 6px !important;
-            border: 1px solid #000000 !important;
-            width: 100%;
+            border: 1.5px solid #000000 !important;
+            padding: 10px 18px !important;
+            width: 100% !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
         }
-        div.stButton > button:first-child:hover {
+        div.stButton > button:hover, 
+        div.stDownloadButton > button:hover {
             background-color: #E67300 !important;
             color: #FFFFFF !important;
         }
 
-        /* Pure White Metric Cards with Orange Borders */
+        /* Dataframe Styling Fix */
+        [data-testid="stDataFrame"], .stDataFrame {
+            border: 1px solid #000000 !important;
+            border-radius: 6px !important;
+            background-color: #FFFFFF !important;
+        }
+
+        /* Metric Cards */
         .metric-card {
             background-color: #FFFFFF;
             border-left: 6px solid #FF8200;
-            border-top: 1px solid #E0E0E0;
-            border-right: 1px solid #E0E0E0;
-            border-bottom: 1px solid #E0E0E0;
+            border-top: 1px solid #D0D0D0;
+            border-right: 1px solid #D0D0D0;
+            border-bottom: 1px solid #D0D0D0;
             padding: 16px;
             border-radius: 6px;
             margin-bottom: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         .metric-title {
             color: #FF8200;
@@ -138,7 +151,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# INITIAL DATASET & SESSION STATE
+# SESSION STATE INITIALIZATION
 # ==========================================
 if "df_cases" not in st.session_state:
     st.session_state.df_cases = pd.DataFrame([
@@ -150,17 +163,39 @@ if "df_cases" not in st.session_state:
     ])
 
 # ==========================================
-# SIDEBAR CONTROL
+# SIDEBAR CONTROL PANEL & INGESTION HUB
 # ==========================================
 with st.sidebar:
-    st.header("Enterprise Governance")
+    st.header("Governance & Data Controls")
     role = st.selectbox("Select Access Role", ["System Admin", "Compliance Manager", "Junior Auditor"])
     user_id = st.text_input("User Identifier", value="K. Pickle, BSHA Compliance")
     st.markdown("---")
-    st.markdown(f"**Active Session:** {role}")
+    
+    st.subheader("Data Ingestion & Controls")
+    uploaded_file = st.file_uploader("Ingest Custom Claims (CSV)", type=["csv"])
+    if uploaded_file is not None:
+        try:
+            custom_df = pd.read_csv(uploaded_file)
+            st.session_state.df_cases = custom_df
+            st.success("Custom dataset loaded successfully!")
+        except Exception as e:
+            st.error(f"Error loading CSV: {e}")
+            
+    if st.button("Reset Queue to Default Sample Data"):
+        st.session_state.df_cases = pd.DataFrame([
+            {"Case_ID": "PAUTH-046", "Status": "Approved", "Risk_Level": "Moderate", "Days_Pending": 4, "Data_Quality_Flag": "Missing resolution date", "Claim_Value": 8500.00},
+            {"Case_ID": "PAUTH-047", "Status": "Closed", "Risk_Level": "High", "Days_Pending": 9, "Data_Quality_Flag": "Missing closure evidence", "Claim_Value": 12000.00},
+            {"Case_ID": "PAUTH-048", "Status": "Escalated", "Risk_Level": "Routine", "Days_Pending": 2, "Data_Quality_Flag": "Missing owner", "Claim_Value": 4500.00},
+            {"Case_ID": "PAUTH-049", "Status": "Pending Review", "Risk_Level": "Critical", "Days_Pending": 6, "Data_Quality_Flag": "Missing human review evidence", "Claim_Value": 25000.00},
+            {"Case_ID": "PAUTH-050", "Status": "Appeal Readiness", "Risk_Level": "Critical", "Days_Pending": 10, "Data_Quality_Flag": "Pass", "Claim_Value": 20000.00}
+        ])
+        st.rerun()
+
+    st.markdown("---")
+    st.markdown(f"**Active Authority:** {role}")
 
 # ==========================================
-# MAIN DASHBOARD CONTENT
+# MAIN DASHBOARD HEADER
 # ==========================================
 st.title("RCM Compliance & Work-Queue Intelligence Engine")
 st.caption("Enterprise Portfolio Artifact: RBAC, SQLite Persistence, Webhook Alerting, and Historical Audit Search.")
@@ -187,7 +222,7 @@ with c4:
 # 2. Executive Portfolio Snapshot
 passing_cases = len(df[df["Data_Quality_Flag"] == "Pass"])
 total_cases = len(df)
-compliance_index = int((passing_cases / total_cases) * 100)
+compliance_index = int((passing_cases / total_cases) * 100) if total_cases > 0 else 0
 
 st.subheader("Executive Portfolio Snapshot")
 s1, s2, s3 = st.columns(3)
@@ -201,7 +236,7 @@ with s3:
 
 st.markdown("---")
 
-# 3. Active Work Queue & Data Quality Exceptions
+# 3. Active Work Queue & Filters
 st.subheader("Active Work Queue & Data Quality Exceptions")
 
 f_col1, f_col2 = st.columns(2)
@@ -213,22 +248,22 @@ with f_col2:
 filtered_df = df[(df["Risk_Level"].isin(selected_risk)) & (df["Data_Quality_Flag"].isin(selected_flag))]
 st.dataframe(filtered_df, use_container_width=True)
 
-# Visual Charts
+# Plotly Charts using #FF8200
 import plotly.express as px
 ch1, ch2 = st.columns(2)
 with ch1:
     fig_status = px.bar(filtered_df, x="Status", title="Status Distribution (Filtered Cases)", color_discrete_sequence=["#FF8200"])
-    fig_status.update_layout(paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font_color="#000000")
+    fig_status.update_layout(paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font_color="#000000", margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig_status, use_container_width=True)
 with ch2:
     fig_aging = px.bar(filtered_df, x="Case_ID", y="Days_Pending", title="Aging Breakdown (Filtered Cases)", color_discrete_sequence=["#FF8200"])
-    fig_aging.update_layout(paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font_color="#000000")
+    fig_aging.update_layout(paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font_color="#000000", margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig_aging, use_container_width=True)
 
 st.markdown("---")
 
-# 4. Interactive Case Detail Inspector
-st.subheader("Interactive Case Detail Inspector")
+# 4. Interactive Case Inspector & Notes Logging
+st.subheader("Interactive Case Detail Inspector & Annotation Log")
 selected_case_id = st.selectbox("Select Case ID to Review", options=df["Case_ID"].tolist())
 case_row = df[df["Case_ID"] == selected_case_id].iloc[0]
 
@@ -244,9 +279,55 @@ with ic4:
 
 st.info(f"Data Quality Flag Status for {selected_case_id}: **{case_row['Data_Quality_Flag']}**")
 
+n_col1, n_col2 = st.columns(2)
+with n_col1:
+    new_case_note = st.text_area(f"Add Audit Annotation Note for {selected_case_id}")
+    if st.button(f"Save Annotation to SQLite for {selected_case_id}"):
+        if new_case_note:
+            conn = sqlite3.connect("rcm_audit_log.db")
+            c = conn.cursor()
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            c.execute("INSERT INTO case_notes (timestamp, case_id, author, note) VALUES (?, ?, ?, ?)",
+                      (timestamp, selected_case_id, user_id, new_case_note))
+            conn.commit()
+            conn.close()
+            st.success("Annotation logged!")
+        else:
+            st.warning("Please enter a note before saving.")
+
+with n_col2:
+    conn = sqlite3.connect("rcm_audit_log.db")
+    notes_df = pd.read_sql_query("SELECT timestamp, author, note FROM case_notes WHERE case_id = ? ORDER BY id DESC", conn, params=(selected_case_id,))
+    conn.close()
+    st.write(f"Existing Case Notes ({len(notes_df)})")
+    st.dataframe(notes_df, use_container_width=True)
+
 st.markdown("---")
 
-# 5. Bulk Remediation Hub
+# 5. Add New Claim Form
+with st.expander("➕ Add New Case / Claim Entry to Queue"):
+    with st.form("add_case_form"):
+        fc1, fc2, fc3 = st.columns(3)
+        with fc1:
+            new_cid = st.text_input("New Case ID", value=f"PAUTH-0{len(df)+46}")
+            new_status = st.selectbox("Status", ["Approved", "Closed", "Escalated", "Pending Review", "Appeal Readiness"])
+        with fc2:
+            new_risk = st.selectbox("Risk Level", ["Routine", "Moderate", "High", "Critical"])
+            new_days = st.number_input("Days Pending", min_value=0, value=1)
+        with fc3:
+            new_flag = st.selectbox("Data Quality Flag", ["Pass", "Missing resolution date", "Missing closure evidence", "Missing owner", "Missing human review evidence"])
+            new_val = st.number_input("Claim Value ($)", min_value=0.0, value=5000.0, step=500.0)
+            
+        submit_new_case = st.form_submit_button("Add Claim to Active Work Queue")
+        if submit_new_case:
+            new_row = pd.DataFrame([{"Case_ID": new_cid, "Status": new_status, "Risk_Level": new_risk, "Days_Pending": new_days, "Data_Quality_Flag": new_flag, "Claim_Value": new_val}])
+            st.session_state.df_cases = pd.concat([st.session_state.df_cases, new_row], ignore_index=True)
+            st.success(f"Case {new_cid} successfully added!")
+            st.rerun()
+
+st.markdown("---")
+
+# 6. Bulk Remediation Hub
 st.subheader("Bulk Remediation Hub")
 open_cases = df[df["Data_Quality_Flag"] != "Pass"]["Case_ID"].tolist()
 if open_cases:
@@ -273,7 +354,7 @@ else:
 
 st.markdown("---")
 
-# 6. Persistent SQLite Audit & Remediation Logbook & Live State Update
+# 7. Single Case SQLite Sign-Off
 st.subheader("Persistent SQLite Audit & Remediation Logbook & Live State Update")
 rem_case_id = st.selectbox("Select Case ID for Persistent SQLite Audit Sign-Off", options=df["Case_ID"].tolist(), key="single_signoff_select")
 target_row = df[df["Case_ID"] == rem_case_id].iloc[0]
@@ -299,7 +380,7 @@ if st.button("Commit Remediation to Database & Update Queue State to 'Pass'"):
 
 st.markdown("---")
 
-# 7. Historical Audit Search & Traceability Panel
+# 8. Historical Audit Search
 st.subheader("Historical Audit Search & Traceability Panel")
 conn = sqlite3.connect("rcm_audit_log.db")
 audit_logs_df = pd.read_sql_query("SELECT * FROM audit_logs ORDER BY id DESC", conn)
@@ -315,9 +396,8 @@ st.dataframe(audit_logs_df, use_container_width=True)
 
 st.markdown("---")
 
-# 8. Automated Compliance Alert & Webhook Dispatcher
+# 9. Automated Alerts & Webhooks
 st.subheader("Automated Compliance Alert & Webhook Dispatcher")
-
 webhook_url = st.text_input("Webhook Endpoint URL (Slack / Teams / Custom)", value="https://httpbin.org/post")
 email_recipient = st.text_input("Compliance Officer Email", value="koripickle1101@gmail.com")
 
@@ -333,7 +413,7 @@ with w_col1:
             }
             res = requests.post(webhook_url, json=payload, timeout=5)
             if res.status_code == 200:
-                st.success(f"Webhook alert successfully dispatched! Response status code: {res.status_code}")
+                st.success(f"Webhook alert successfully dispatched! Status code: {res.status_code}")
             else:
                 st.warning(f"Webhook dispatched with status code: {res.status_code}")
         except Exception as e:
@@ -345,7 +425,7 @@ with w_col2:
 
 st.markdown("---")
 
-# 9. Executive Report Exports
+# 10. Clean White Executive Exports
 st.subheader("Executive Report Exports")
 
 summary_text = f"""==================================================
