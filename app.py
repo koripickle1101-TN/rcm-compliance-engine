@@ -27,10 +27,19 @@ st.set_page_config(
 
 st.markdown("""
     <style>
+    /* 1. Reset base page background and text colors */
+    .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+    }
     
-  /* Fix multiselect tags (remove default red/pink pill background) */
+    h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown {
+        color: #000000 !important;
+    }
+
+    /* 2. Style Multiselect Pill Tags in Tennessee Orange */
     span[data-baseweb="tag"] {
-        background-color: #1E1E1E !important;
+        background-color: #FF8200 !important;
         border: 1px solid #FF8200 !important;
         color: #FFFFFF !important;
     }
@@ -41,23 +50,7 @@ st.markdown("""
         fill: #FFFFFF !important;
     }
 
-    /* 1. Reset background and text colors */
-    .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-    }
-
-    /* 1. Reset background and text colors */
-    .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"] {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-    }
-    
-    h1, h2, h3, h4, h5, h6, p, label, span, .stMarkdown {
-        color: #000000 !important;
-    }
-
-    /* 2. Fix Input Fields & Text Areas: White background, Orange border, Dark readable text */
+    /* 3. Fix Input Fields & Text Areas with White background & Orange borders */
     div[data-baseweb="input"] > div,
     div[data-baseweb="base-input"],
     div[data-baseweb="textarea"] > div,
@@ -81,7 +74,7 @@ st.markdown("""
         -webkit-text-fill-color: #666666 !important;
     }
 
-    /* 3. Dropdowns & Selectboxes */
+    /* 4. Dropdowns & Selectboxes in Tennessee Orange */
     div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
         background-color: #FFFFFF !important;
         border: 1px solid #FF8200 !important;
@@ -94,7 +87,7 @@ st.markdown("""
         color: #FFFFFF !important;
     }
 
-    /* 4. Fix Accordion/Expander body (Clean contrast, no solid orange fill) */
+    /* 5. Accordion/Expander Styling */
     div[data-testid="stExpander"] {
         border: 1px solid #E0E0E0 !important;
         border-radius: 6px !important;
@@ -114,7 +107,7 @@ st.markdown("""
         color: #111111 !important;
     }
 
-    /* 5. Custom Metric Cards */
+    /* 6. Metric Cards */
     .metric-card {
         background-color: #FFFFFF;
         border-left: 6px solid #FF8200;
@@ -141,7 +134,7 @@ st.markdown("""
         white-space: nowrap !important;
     }
 
-    /* 6. Primary Action Buttons */
+    /* 7. Action Buttons */
     div.stButton > button, div.stDownloadButton > button {
         background-color: #FF8200 !important;
         color: #FFFFFF !important;
@@ -156,7 +149,7 @@ st.markdown("""
         color: #FFFFFF !important;
     }
 
-    /* 7. DataFrames & Tables */
+    /* 8. DataFrames & Tables */
     [data-testid="stDataFrame"], .stDataFrame, div[data-testid="stTable"] {
         border: 1px solid #FF8200 !important;
         border-radius: 6px !important;
@@ -172,7 +165,7 @@ st.markdown("""
         color: #111111 !important;
     }
 
-    /* 8. File Uploader */
+    /* 9. File Uploader */
     section[data-testid="stFileUploaderDropzone"],
     div[data-testid="stFileUploaderDropzone"] {
         background-color: #FF8200 !important;
@@ -184,6 +177,9 @@ st.markdown("""
         color: #FFFFFF !important;
         font-weight: bold !important;
     }
+    </style>
+""", unsafe_allow_html=True)
+
     </style>
 """, unsafe_allow_html=True)
 
