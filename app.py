@@ -480,3 +480,11 @@ with col2:
     else:
         st.warning("Immediate remediation required to clear high-risk compliance flags.")
 
+# Change df_filtered to reflect current view
+total_cases_count = len(df_filtered)
+critical_cases_count = len(df_filtered[df_filtered["Risk_Level"] == "Critical"])
+unresolved_exceptions = len(df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"])
+
+compliance_score = max(0, 100 - (critical_cases_count * 20) - (unresolv_exceptions * 10))
+
+
