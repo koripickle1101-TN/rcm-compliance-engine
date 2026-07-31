@@ -10,7 +10,6 @@ st.set_page_config(
     layout="wide",
 )
 
-# STRICT TENNESSEE VOLS BRAND PALETTE
 VOLS_ORANGE = "#FF8200"
 WHITE = "#FFFFFF"
 BLACK = "#000000"
@@ -20,14 +19,12 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Great+Vibes&display=swap');
 
-    /* Global App Background */
     .stApp {{
         background-color: {WHITE};
         color: {BLACK};
         font-family: 'Inter', sans-serif !important;
     }}
     
-    /* Sidebar Overrides */
     [data-testid="stSidebar"] {{
         background-color: {WHITE};
         border-right: 2px solid {VOLS_ORANGE};
@@ -47,7 +44,6 @@ st.markdown(
         letter-spacing: -0.01em;
     }}
 
-    /* Inputs and Text Areas */
     input, textarea, select, [data-baseweb="select"] div, [data-baseweb="input"] div {{
         background-color: {WHITE} !important;
         color: {BLACK} !important;
@@ -67,7 +63,6 @@ st.markdown(
         box-shadow: 0 0 0 1px {VOLS_ORANGE} !important;
     }}
 
-    /* Metric Cards */
     .metric-card {{
         background-color: {WHITE};
         padding: 24px;
@@ -77,7 +72,6 @@ st.markdown(
         box-shadow: 0 4px 20px rgba(0,0,0,0.03);
     }}
 
-    /* Sidebar Session Box */
     .sidebar-session-box {{
         background-color: {WHITE};
         border: 1px solid {VOLS_ORANGE};
@@ -89,7 +83,6 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
     }}
 
-    /* Button Override */
     .stButton button, .stDownloadButton button {{
         background-color: {WHITE} !important;
         border: 1px solid {VOLS_ORANGE} !important;
@@ -104,7 +97,6 @@ st.markdown(
         border-color: {VOLS_ORANGE} !important;
     }}
 
-    /* Footer */
     .editorial-footer {{
         margin-top: 80px;
         padding: 40px 0;
@@ -137,7 +129,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Custom Alert Function to REPLACE all default blue/yellow Streamlit boxes
+
 def vols_alert(message, icon="🟠"):
     st.markdown(
         f"""
@@ -145,7 +137,7 @@ def vols_alert(message, icon="🟠"):
             {icon} {message}
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
 
@@ -355,8 +347,7 @@ with tab1:
         f"Data Quality Flag Status for {selected_inspect_case}:"
         f" `{inspect_row['Data_Quality_Flag']}`"
     )
-    
-    # REPLACED st.info
+
     vols_alert("Boundary Notice: This tool is built strictly for educational workflow simulation and does not contain PHI.")
 
     st.markdown("---")
@@ -710,10 +701,8 @@ Calculated Compliance Index: {compliance_index}%
             vols_alert("Immediate remediation required to clear high-risk compliance flags.")
 
 with tab2:
-    st.markdown("### Collaborative Case Notes & Annotations Stream")
-    st.markdown(
-        "Add and review persistent case-specific notes across your auditing team."
-    )
+    st.subheader("📝 Case Notes Stream")
+    st.write("Live operational notes and audit documentation stream.")
 
     note_case = st.selectbox(
         "Select Case ID for Annotation", df["Case_ID"], key="note_case_select"
@@ -754,95 +743,6 @@ with tab2:
         st.dataframe(notes_df, use_container_width=True)
     else:
         vols_alert("No case notes recorded yet.")
-
-with tab3:
-    st.markdown("### Review & Attestation Guide")
-    st.markdown(
-        "This section provides operational definitions for data quality flags and regulatory compliance reviews."
-    )
-    st.markdown(
-        "- **Missing resolution date**: Case closure lacks a finalized date stamp."
-    )
-    st.markdown(
-        "- **Missing closure evidence**: Supporting documentation for resolution is absent."
-    )
-    st.markdown(
-        "- **Missing owner**: No designated analyst or handler is assigned to the work item."
-    )
-    st.markdown(
-        "- **Missing human review evidence**: Automated decision requires manual secondary verification sign-off."
-    )
-    st.markdown("- **Pass**: Record meets all enterprise data quality criteria.")
-
-st.markdown(
-    f"""
-    <div class="editorial-footer">
-        <div class="footer-name">Created by Kori Pickle</div>
-        <div class="cursive-signature">Kori Pickle</div>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
-
-with tab3:
-    st.subheader("📋 Review & Attestation Guide")
-    st.write(
-        "Standard Operating Procedures (SOP) and operational definitions for data quality exception flags and compliance attestations."
-    )
-    st.divider()
-
-    col_g1, col_g2 = st.columns(2)
-    
-    with col_g1:
-        st.markdown(
-            f"""
-            <div class="metric-card" style="margin-bottom: 15px;">
-                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Resolution Date</h4>
-                <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Case resolution status is marked closed or approved without a validated timestamp.</p>
-                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Cross-reference clearinghouse logs and record the exact final adjudication date.</p>
-            </div>
-            <div class="metric-card" style="margin-bottom: 15px;">
-                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Closure Evidence</h4>
-                <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Supporting documentation, payor EOB, or written authorization is absent from the file.</p>
-                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Attach proof of payment or final appeal decision before committing state change to 'Pass'.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col_g2:
-        st.markdown(
-            f"""
-            <div class="metric-card" style="margin-bottom: 15px;">
-                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Owner</h4>
-                <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> No primary analyst or compliance specialist is assigned accountability for the work item.</p>
-                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Assign an active staff member in the work-queue manager.</p>
-            </div>
-            <div class="metric-card" style="margin-bottom: 15px;">
-                <h4 style="color:{VOLS_ORANGE}!important; margin:0 0 8px 0;">Missing Human Review Evidence</h4>
-                <p style="margin:0 0 8px 0; font-size:0.95rem;"><strong>Definition:</strong> Automated claim/authorization decision lacks required secondary sign-off.</p>
-                <p style="margin:0; font-size:0.85rem; color:rgb(85,85,85);"><strong>Remediation Protocol:</strong> Require Senior Auditor or Compliance Manager verification.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    st.divider()
-    st.subheader("🛡️ Enterprise Governance & Regulatory Attestation")
-    vols_alert(
-        "Attestation Clause: All remediation logs committed to the persistent database constitute an immutable audit trail subject to internal quality management system (QMS) standards.",
-        icon="📜"
-    )
-
-tab1, tab2, tab3 = st.tabs(
-    ["Dashboard & Inspector", "Case Notes Stream", "Review & Attestation Guide"]
-)
-
-with tab1:
-    pass
-
-with tab2:
-    pass
 
 with tab3:
     st.subheader("📋 Review & Attestation Guide")
@@ -895,6 +795,13 @@ with tab3:
     )
 
 st.divider()
+
+st.markdown(
+    "<h4 style='text-align: center;'>CREATED BY KORI PICKLE</h4>",
+    unsafe_allow_html=True,
+)
+
+st.divider()
 st.subheader("🚀 Realistic Next Upgrades to Implement")
 st.write(
     "Here are four high-impact, realistic features that will take this application to the next level without cluttering the UI:"
@@ -931,3 +838,4 @@ with col_u2:
         """,
         unsafe_allow_html=True,
     )
+
