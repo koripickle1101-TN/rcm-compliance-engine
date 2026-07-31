@@ -303,5 +303,24 @@ st.download_button(
     mime="text/css",
 )
 
+st.markdown("---")
+st.subheader("Data Quality Exception Audit & Resolution Log")
+
+if "Data_Quality_Flag" in df_filtered.columns:
+    dq_summary = df_filtered[df_filtered["Data_Quality_Flag"] != "Pass"].groupby("Data_Quality_Flag").agg(
+        Affected_Cases=("Case_ID", "count"),
+        Case_List=("Case_ID", lambda x: ", ".join(x))
+    ).reset_index()
+
+    st.dataframe(dq_summary, use_container_width=True)
+
+    st.download_button(
+        label="📥 Download DQ Exception Audit Log",
+        data=dq_summary.to_csv(index=False).encode("utf-8"),
+        file_name="data_quality_exception_audit.csv",
+        mime="text/csv",
+    )
+else:
+    st.info("No data quality flag field detected in current scope.")
 
 
