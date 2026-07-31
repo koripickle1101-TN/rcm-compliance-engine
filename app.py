@@ -297,6 +297,23 @@ with st.sidebar:
             st.success("Custom dataset loaded successfully!")
         except Exception as e:
             st.error(f"Error loading CSV: {e}")
+
+    st.markdown("---")
+    
+    st.write("Or Paste CSV Data Directly:")
+    pasted_csv_text = st.text_area("Paste CSV rows here (Case_ID,Status,Risk_Level,Days_Pending,Data_Quality_Flag,Claim_Value)")
+    
+    if st.button("Parse and Load Pasted Data"):
+        if pasted_csv_text:
+            try:
+                custom_df = pd.read_csv(io.StringIO(pasted_csv_text))
+                st.session_state.df_cases = custom_df
+                st.success("Pasted dataset parsed and loaded successfully!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error parsing pasted text: {e}. Ensure format matches CSV headers.")
+        else:
+            st.warning("Please paste valid CSV text before parsing.")
             
     if st.button("Reset Queue to Default Sample Data"):
         st.session_state.df_cases = pd.DataFrame([
